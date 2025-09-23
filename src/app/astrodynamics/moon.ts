@@ -18,7 +18,7 @@ export class Moon {
 
     // Geometría y textura
     const geometry = new THREE.SphereGeometry(this.radius, 64, 64);
-    const texture = new THREE.TextureLoader().load('/images/sun.jpg');
+    const texture = new THREE.TextureLoader().load('/images/moon.jpg');
     const material = new THREE.MeshBasicMaterial({ map: texture });
 
     this.mesh = new THREE.Mesh(geometry, material);
