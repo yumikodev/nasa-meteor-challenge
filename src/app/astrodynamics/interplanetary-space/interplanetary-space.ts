@@ -1,9 +1,9 @@
 import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Sun } from '../planets/sun';
+import { Sun } from '../celestial-bodies/sun';
 import { Earth } from '../planets/earth';
-import { Moon } from '../moon';
+import { Moon } from '../celestial-bodies/moon';
 
 @Component({
   selector: 'app-interplanetary-space',
