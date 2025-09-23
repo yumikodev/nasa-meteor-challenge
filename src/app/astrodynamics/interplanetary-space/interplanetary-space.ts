@@ -85,39 +85,38 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
   private animate = () => {
     requestAnimationFrame(this.animate);
-
+  
     this.time += 0.01; // Incremento del tiempo de animación
-
-    // Actualizar posición orbital de la Tierra
-    const distance = 3; // distancia fija al Sol
-    const speed = 0.01; // velocidad orbital, ajusta este valor para que orbite más rápido o lento
-    const angle = this.time * speed;
-
+  
+    // Parámetros Tierra
+    const earthDistance = 3; // distancia fija al Sol
+    const earthSpeed = 0.01; // velocidad orbital Tierra
+    const earthAngle = this.time * earthSpeed;
+  
     if (this.earth) {
-      this.earth.mesh.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
-
+      this.earth.mesh.position.set(Math.cos(earthAngle) * earthDistance, 0, Math.sin(earthAngle) * earthDistance);
+  
       // Rotación de la Tierra sobre su propio eje
       this.earth.mesh.rotation.y += 0.02;
     }
-
+  
     // Parámetros Luna
-    const moonDistance = 1;  // distancia de la luna a la tierra
-    const moonSpeed = 5;     // velocidad orbital de la luna alrededor de la tierra
+    const moonDistance = this.moon.orbitRadius;
+    const moonSpeed = earthSpeed * (365 / 27.3); // velocidad orbital luna relativa a la tierra
     const moonAngle = this.time * moonSpeed;
-    
+  
     if (this.moon && this.earth) {
-      // Posición de la luna relativa a la tierra
       this.moon.mesh.position.set(
-        this.earth.mesh.position.x + Math.cos(moonAngle) * moonDistance,
-        0,
-        this.earth.mesh.position.z + Math.sin(moonAngle) * moonDistance
+        this.earth.mesh.position.x + Math.cos(moonAngle) * moonDistance, 0, this.earth.mesh.position.z + Math.sin(moonAngle) * moonDistance
       );
-      this.moon.mesh.rotation.y += 0.05;
+  
+      // Rotación sincrónica de la Luna (siempre muestra la misma cara a la Tierra)
+      this.moon.mesh.rotation.y = moonAngle;
     }
-
+  
     // Actualiza los controles
     this.controls.update();
-
+  
     // Renderiza la escena
     this.renderer.render(this.scene, this.camera);
   };
