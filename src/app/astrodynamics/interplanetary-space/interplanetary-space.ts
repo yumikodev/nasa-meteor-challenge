@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Sun } from '../planets/sun';
 import { Earth } from '../planets/earth';
+import { Moon } from '../moon';
 
 @Component({
   selector: 'app-interplanetary-space',
@@ -23,6 +24,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
   // Guardamos referencia para actualizar posición
   private earth!: Earth;
+  private moon!: Moon;
 
   ngOnInit(): void {}
 
@@ -36,9 +38,14 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
     // Crear la Tierra y agregarla a la escena
     this.earth = new Earth();
-    // La posición inicial la pondremos con la animación, aquí la puedes dejar en cualquier lugar
+    // La posición inicial la pondremos con la animación
     this.earth.mesh.position.set(3, 0, 0);
     this.scene.add(this.earth.mesh);
+
+    // Luna
+    this.moon = new Moon();
+    this.moon.mesh.position.set(1, 0, 0); // Posición inicial relativa a la Tierra
+    this.scene.add(this.moon.mesh);
 
     this.animate();
   }
@@ -68,7 +75,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.renderer.setSize(width, height);
     this.canvasRef.nativeElement.appendChild(this.renderer.domElement);
 
-    // Controles de cámara (tu control)
+    // Controles de cámara
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true; // suaviza movimiento
     this.controls.dampingFactor = 0.05;
@@ -78,11 +85,11 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   private animate = () => {
     requestAnimationFrame(this.animate);
 
-    this.time += 0.01; // Incrementamos el tiempo para animación
+    this.time += 0.01; // Incremento del tiempo de animación
 
     // Actualizar posición orbital de la Tierra
     const distance = 3; // distancia fija al Sol
-    const speed = 1; // velocidad orbital, ajusta este valor para que orbite más rápido o lento
+    const speed = 1; // velocidad orbital
     const angle = this.time * speed;
 
     if (this.earth) {
@@ -92,8 +99,23 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
         Math.sin(angle) * distance
       );
 
-      // Opcional: rotar la Tierra sobre su propio eje para más realismo
+      // Rotación de la Tierra sobre su propio eje
       this.earth.mesh.rotation.y += 0.02;
+    }
+
+    // Parámetros Luna
+    const moonDistance = 1;  // distancia de la luna a la tierra
+    const moonSpeed = 5;     // velocidad orbital de la luna alrededor de la tierra
+    const moonAngle = this.time * moonSpeed;
+    
+    if (this.moon && this.earth) {
+      // Posición de la luna relativa a la tierra
+      this.moon.mesh.position.set(
+        this.earth.mesh.position.x + Math.cos(moonAngle) * moonDistance,
+        0,
+        this.earth.mesh.position.z + Math.sin(moonAngle) * moonDistance
+      );
+      this.moon.mesh.rotation.y += 0.05;
     }
 
     // Actualiza los controles
