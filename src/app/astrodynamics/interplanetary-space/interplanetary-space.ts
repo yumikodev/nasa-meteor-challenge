@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angula
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Sun } from '../sun/sun';
+import { Earth } from './earth'
 
 @Component({
   selector: 'app-interplanetary-space',
@@ -24,14 +25,13 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
     // Crear y agregar el Sol
     const sun = new Sun();
+    sun.mesh.position.set(0, 0, 0);
     this.scene.add(sun.mesh);
 
     // Crear y agregar el cubo fijo
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-    const cube = new THREE.Mesh(geometry, material);
-    cube.position.set(3, 0, 0); // colocar un poco alejado del sol
-    this.scene.add(cube);
+    const earth = new Earth();
+    earth.mesh.position.set(3, 0, 0);
+    this.scene.add(earth.mesh);
 
     this.animate();
   }
