@@ -1,14 +1,14 @@
 import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Sun } from '../sun/sun';
-import { Earth } from './earth'
+import { Sun } from '../planets/sun';
+import { Earth } from '../planets/earth';
 
 @Component({
   selector: 'app-interplanetary-space',
   templateUrl: './interplanetary-space.html',
   styleUrls: ['./interplanetary-space.css'],
-  standalone: true
+  standalone: true,
 })
 export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLDivElement>;
@@ -42,7 +42,15 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
     // Escena
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000000);
+    const loader = new THREE.TextureLoader();
+    loader
+      .loadAsync('/images/interplanetary-space.jpg')
+      .then((texture) => {
+        this.scene.background = texture;
+      })
+      .catch(() => {
+        this.scene.background = new THREE.Color(0x000000);
+      });
 
     // Cámara
     this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
@@ -68,5 +76,5 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
     // Renderiza la escena
     this.renderer.render(this.scene, this.camera);
-  }
+  };
 }

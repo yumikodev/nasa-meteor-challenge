@@ -5,7 +5,9 @@ export class Earth {
 
   constructor() {
     const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load('/images/earth.jpg');
+    const material = new THREE.MeshBasicMaterial({ map: texture });
     this.mesh = new THREE.Mesh(geometry, material);
   }
 }
