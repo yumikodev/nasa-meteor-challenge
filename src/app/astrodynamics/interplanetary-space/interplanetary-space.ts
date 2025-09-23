@@ -46,6 +46,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.moon = new Moon();
     this.moon.mesh.position.set(1, 0, 0); // Posición inicial relativa a la Tierra
     this.scene.add(this.moon.mesh);
+    this.scene.add(this.earth.orbit());
 
     this.animate();
   }
@@ -89,15 +90,11 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
     // Actualizar posición orbital de la Tierra
     const distance = 3; // distancia fija al Sol
-    const speed = 1; // velocidad orbital
+    const speed = 0.01; // velocidad orbital, ajusta este valor para que orbite más rápido o lento
     const angle = this.time * speed;
 
     if (this.earth) {
-      this.earth.mesh.position.set(
-        Math.cos(angle) * distance,
-        0,
-        Math.sin(angle) * distance
-      );
+      this.earth.mesh.position.set(Math.cos(angle) * distance, 0, Math.sin(angle) * distance);
 
       // Rotación de la Tierra sobre su propio eje
       this.earth.mesh.rotation.y += 0.02;
