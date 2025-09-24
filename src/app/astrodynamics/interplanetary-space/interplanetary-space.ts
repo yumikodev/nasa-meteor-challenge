@@ -2,12 +2,9 @@ import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angula
 import * as THREE from 'three';
 import { createPlanetLabel } from '../../shared/helpers/label.helper';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Sun } from '../celestial-bodies/sun';
-import { Mercury } from '../planets/mercury';
-import { Venus } from '../planets/venus';
-import { Earth } from '../planets/earth';
-import { Moon } from '../celestial-bodies/moon';
-import { Mars } from '../planets/mars';
+import { Sun } from './sun';
+import { Earth } from './earth';
+import { Moon } from './moon';
 import { createHighlightCircle } from '../../shared/helpers/highlight.helper';
 import { CAMERA_VIEWS } from './camera-views';
 
@@ -27,34 +24,28 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
   private time: number = 0;
 
-  // Planets
-  private mercury!: Mercury;
-  private venus!: Venus;
+  // Planetas
   private earth!: Earth;
-  private mars!: Mars;
   private moon!: Moon;
 
   // Labels
   private sunLabel!: THREE.Sprite;
-  private mercuryLabel!: THREE.Sprite;
-  private venusLabel!: THREE.Sprite;
   private earthLabel!: THREE.Sprite;
   private moonLabel!: THREE.Sprite;
-  private marsLabel!: THREE.Sprite;
 
   // Highlights
-  private mercuryHighlight!: THREE.Mesh;
-  private venusHighlight!: THREE.Mesh;
   private earthHighlight!: THREE.Mesh;
   private moonHighlight!: THREE.Mesh;
-  private marsHighlight!: THREE.Mesh;
+
+  // Offset fijo de la cámara respecto a la Tierra (como si orbitara junto a ella)
+  private cameraOffset = new THREE.Vector3(0, 3, 3);
 
   ngOnInit(): void {}
 
   ngAfterViewInit(): void {
     this.initScene();
 
-    // Sun
+    // Sol
     const sun = new Sun();
     sun.mesh.position.set(0, 0, 0);
     this.scene.add(sun.mesh);
@@ -63,35 +54,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.sunLabel.position.set(0, 10, 0);
     this.scene.add(this.sunLabel);
 
-    // Mercury
-    this.mercury = new Mercury();
-    this.mercury.mesh.position.set(this.mercury.orbitRadius, 0, 0);
-    this.scene.add(this.mercury.mesh);
-    this.scene.add(this.mercury.orbit());
-
-    this.mercuryLabel = createPlanetLabel('Mercury');
-    this.mercuryLabel.position.set(this.mercury.orbitRadius, 10, 0);
-    this.scene.add(this.mercuryLabel);
-
-    this.mercuryHighlight = createHighlightCircle(this.mercury.radius * 3, 0xffcc00);
-    this.mercuryHighlight.position.copy(this.mercury.mesh.position);
-    this.scene.add(this.mercuryHighlight);
-
-    // Venus
-    this.venus = new Venus();
-    this.venus.mesh.position.set(this.venus.orbitRadius, 0, 0);
-    this.scene.add(this.venus.mesh);
-    this.scene.add(this.venus.orbit());
-
-    this.venusLabel = createPlanetLabel('Venus');
-    this.venusLabel.position.set(this.venus.orbitRadius, 10, 0);
-    this.scene.add(this.venusLabel);
-
-    this.venusHighlight = createHighlightCircle(this.venus.radius * 3, 0xffa500);
-    this.venusHighlight.position.copy(this.venus.mesh.position);
-    this.scene.add(this.venusHighlight);
-
-    // Earth
+    // Tierra
     this.earth = new Earth();
     this.earth.mesh.position.set(this.earth.orbitRadius, 0, 0);
     this.scene.add(this.earth.mesh);
@@ -101,11 +64,11 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.earthLabel.position.set(this.earth.orbitRadius, 10, 0);
     this.scene.add(this.earthLabel);
 
-    this.earthHighlight = createHighlightCircle(this.earth.radius * 3, 0x00ccff);
+    this.earthHighlight = createHighlightCircle(this.earth.radius * 4, 0x00ccff);
     this.earthHighlight.position.copy(this.earth.mesh.position);
     this.scene.add(this.earthHighlight);
 
-    // Moon
+    // Luna
     this.moon = new Moon();
     this.moon.mesh.position.set(1, 0, 0);
     this.scene.add(this.moon.mesh);
@@ -114,23 +77,15 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.moonLabel.position.set(this.moon.mesh.position.x, 5, this.moon.mesh.position.z);
     this.scene.add(this.moonLabel);
 
-    this.moonHighlight = createHighlightCircle(this.moon.radius * 4, 0xffffff);
+    this.moonHighlight = createHighlightCircle(this.moon.radius * 5, 0xffffff);
     this.moonHighlight.position.copy(this.moon.mesh.position);
     this.scene.add(this.moonHighlight);
 
-    // Mars
-    this.mars = new Mars();
-    this.mars.mesh.position.set(this.mars.orbitRadius, 0, 0);
-    this.scene.add(this.mars.mesh);
-    this.scene.add(this.mars.orbit());
-
-    this.marsLabel = createPlanetLabel('Mars');
-    this.marsLabel.position.set(this.mars.orbitRadius, 10, 0);
-    this.scene.add(this.marsLabel);
-
-    this.marsHighlight = createHighlightCircle(this.mars.radius * 3, 0xff4500);
-    this.marsHighlight.position.copy(this.mars.mesh.position);
-    this.scene.add(this.marsHighlight);
+    // Inicializar cámara relativa a la Tierra
+    const earthView = CAMERA_VIEWS.earth(this.earth.mesh.position);
+    this.camera.position.copy(earthView.position);
+    this.controls.target.copy(earthView.target);
+    this.controls.update();
 
     this.animate();
   }
@@ -138,9 +93,9 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   private initScene() {
     const width = this.canvasRef.nativeElement.clientWidth;
     const height = this.canvasRef.nativeElement.clientHeight;
-
+  
     this.scene = new THREE.Scene();
-
+  
     const loader = new THREE.TextureLoader();
     loader
       .loadAsync('/images/interplanetary-space.jpg')
@@ -150,75 +105,44 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       .catch(() => {
         this.scene.background = new THREE.Color(0x000000);
       });
-
+  
     this.camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
-
-    // Corrección: Setear posición y target inicial de la cámara y controles
-    this.camera.position.copy(CAMERA_VIEWS.sun.position);
-
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(width, height);
     this.canvasRef.nativeElement.appendChild(this.renderer.domElement);
-
+  
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.enableZoom = true;
-
-    this.controls.target.copy(CAMERA_VIEWS.sun.target);
-    this.controls.update();
+    this.controls.enableRotate = true;
+  
+    // 💡 Zoom + Rotación actualizada
+    let previousDistance = this.camera.position.distanceTo(this.controls.target);
+  
+    this.controls.addEventListener('change', () => {
+      const currentEarthPos = this.earth?.mesh.position;
+  
+      if (!currentEarthPos) return;
+  
+      const newOffset = this.camera.position.clone().sub(currentEarthPos);
+      this.cameraOffset = newOffset;
+  
+      const currentDistance = this.camera.position.distanceTo(this.controls.target);
+      previousDistance = currentDistance;
+    });
   }
+  
+
   private animate = () => {
     requestAnimationFrame(this.animate);
 
     this.time += 0.01;
 
-    // Mercury
-    if (this.mercury) {
-      const angle = this.time * 0.02;
-      this.mercury.mesh.position.set(
-        Math.cos(angle) * this.mercury.orbitRadius,
-        0,
-        Math.sin(angle) * this.mercury.orbitRadius
-      );
-      this.mercury.mesh.rotation.y += 0.01;
-
-      this.mercuryHighlight.position.copy(this.mercury.mesh.position);
-    }
-
-    if (this.mercuryLabel && this.mercury) {
-      this.mercuryLabel.position.set(
-        this.mercury.mesh.position.x,
-        10,
-        this.mercury.mesh.position.z
-      );
-    }
-
-    // Venus
-    if (this.venus) {
-      const angle = this.time * 0.015;
-      this.venus.mesh.position.set(
-        Math.cos(angle) * this.venus.orbitRadius,
-        0,
-        Math.sin(angle) * this.venus.orbitRadius
-      );
-      this.venus.mesh.rotation.y += 0.008;
-
-      this.venusHighlight.position.copy(this.venus.mesh.position);
-    }
-
-    if (this.venusLabel && this.venus) {
-      this.venusLabel.position.set(
-        this.venus.mesh.position.x,
-        10,
-        this.venus.mesh.position.z
-      );
-    }
-
-    // Earth
     const earthSpeed = 0.01;
     const earthAngle = this.time * earthSpeed;
 
+    // Posicionar la Tierra en su órbita
     if (this.earth) {
       this.earth.mesh.position.set(
         Math.cos(earthAngle) * this.earth.orbitRadius,
@@ -230,6 +154,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       this.earthHighlight.position.copy(this.earth.mesh.position);
     }
 
+    // Etiqueta de la Tierra
     if (this.earthLabel && this.earth) {
       this.earthLabel.position.set(
         this.earth.mesh.position.x,
@@ -238,7 +163,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       );
     }
 
-    // Moon (relative to Earth)
+    // Posicionar la Luna alrededor de la Tierra
     if (this.moon && this.earth) {
       const moonDistance = this.moon.orbitRadius;
       const moonSpeed = earthSpeed * (365 / 27.3);
@@ -262,30 +187,17 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       );
     }
 
-    // Mars
-    if (this.mars) {
-      const angle = this.time * 0.008;
-      this.mars.mesh.position.set(
-        Math.cos(angle) * this.mars.orbitRadius,
-        0,
-        Math.sin(angle) * this.mars.orbitRadius
-      );
-      this.mars.mesh.rotation.y += 0.015;
-
-      this.marsHighlight.position.copy(this.mars.mesh.position);
-    }
-
-    if (this.marsLabel && this.mars) {
-      this.marsLabel.position.set(
-        this.mars.mesh.position.x,
-        10,
-        this.mars.mesh.position.z
-      );
-    }
-
-    // Sun label fixed position
+    // Etiqueta del Sol
     if (this.sunLabel) {
       this.sunLabel.position.set(0, 10, 0);
+    }
+
+    // 📌 Aquí fijamos la cámara en la misma órbita que la Tierra (offset relativo)
+    if (this.earth) {
+      const earthPosition = this.earth.mesh.position;
+      const cameraPosition = earthPosition.clone().add(this.cameraOffset);
+      this.camera.position.copy(cameraPosition);
+      this.controls.target.copy(earthPosition);
     }
 
     this.controls.update();
@@ -293,21 +205,19 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   };
 
   setCameraView(view: keyof typeof CAMERA_VIEWS) {
-    const targetPosition = CAMERA_VIEWS[view];
+    const viewDefinition = CAMERA_VIEWS[view];
     let pos: THREE.Vector3;
     let target: THREE.Vector3;
 
-    if (typeof targetPosition === 'function') {
-      const viewData = targetPosition(this.earth.mesh.position);
+    if (typeof viewDefinition === 'function') {
+      const viewData = viewDefinition(this.earth.mesh.position);
       pos = viewData.position;
       target = viewData.target;
     } else {
-      pos = targetPosition.position;
-      target = targetPosition.target;
+      pos = (viewDefinition as { position: THREE.Vector3; target: THREE.Vector3 }).position;
+      target = (viewDefinition as { position: THREE.Vector3; target: THREE.Vector3 }).target;
     }
 
-    this.camera.position.copy(pos);
-    this.controls.target.copy(target);
-    this.controls.update();
+    this.cameraOffset = pos.clone().sub(target); // Nueva cámara "montada"
   }
 }
