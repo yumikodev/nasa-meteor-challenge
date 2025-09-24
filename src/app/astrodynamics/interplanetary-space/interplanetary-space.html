@@ -1,1 +1,16 @@
-<div #canvas style="width: 100%; height: 100vh;"></div>
+<!-- En tu archivo interplanetary-space.html -->
+<div class="relative w-full h-screen">
+  <!-- El lienzo de tu simulación 3D -->
+  <div #canvas id="canvas-container"></div>
+  <!-- La interfaz de usuario (se mostrará encima del lienzo) -->
+  <div class="ui-container">
+    <div class="panel-left">
+      <h1 class="text-white text-4xl md:text-5xl font-bold mb-4">Simulación Espacial</h1>
+      <div class="flex gap-4">
+        <button class="control-button">Zoom +</button>
+        <button class="control-button">Zoom -</button>
+        <button class="control-button">Reiniciar Cámara</button>
+      </div>
+    </div>
+  </div>
+</div>
