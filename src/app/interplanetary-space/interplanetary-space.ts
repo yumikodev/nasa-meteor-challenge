@@ -1,11 +1,11 @@
 import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import * as THREE from 'three';
-import { createPlanetLabel } from '../../shared/helpers/label.helper';
+import { createPlanetLabel } from '../shared/helpers/label.helper';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Sun } from './sun';
 import { Earth } from './earth';
 import { Moon } from './moon';
-import { createHighlightCircle } from '../../shared/helpers/highlight.helper';
+import { createHighlightCircle } from '../shared/helpers/highlight.helper';
 import { CAMERA_VIEWS } from './camera-views';
 
 @Component({

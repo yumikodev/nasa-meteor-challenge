@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { toScaledValue } from '../../shared/helpers/scale.helper';
+import { toScaledValue } from '../shared/helpers/scale.helper';
 
 
 export class Moon {
