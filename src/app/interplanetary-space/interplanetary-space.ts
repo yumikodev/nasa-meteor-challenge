@@ -1,4 +1,11 @@
-import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnInit,
+  ViewChild,
+  AfterViewInit,
+  ChangeDetectorRef,
+} from '@angular/core';
 import * as THREE from 'three';
 import { createPlanetLabel } from '../shared/helpers/label.helper';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -8,12 +15,14 @@ import { Moon } from './moon';
 import { createHighlightCircle } from '../shared/helpers/highlight.helper';
 import { CAMERA_VIEWS } from './camera-views';
 import { getJulianDateFromSimulatedTime } from '../shared/helpers/kepler.helper';
+import { DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-interplanetary-space',
   templateUrl: './interplanetary-space.html',
   styleUrls: ['./interplanetary-space.css'],
   standalone: true,
+  imports: [DatePipe],
 })
 export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLDivElement>;
@@ -23,9 +32,13 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   private renderer!: THREE.WebGLRenderer;
   private controls!: OrbitControls;
 
-  private simulationStartDateMs = new Date('2025-01-01T00:00:00Z').getTime();
-  public time: number = 0; // días desde 1 enero 2025
+  private simulationStartDate = new Date('2025-01-01T00:00:00Z'); // ✅ Fecha exacta
+  private simulationStartDateMs = this.simulationStartDate.getTime();
+
+  public time: number = 0; // días desde 1 enero 2025 a las 00:00
   public isPaused: boolean = false;
+
+  public simulatedDate: Date = new Date(this.simulationStartDateMs); // ✅ Fecha simulada precisa
 
   private earth!: Earth;
   private moon!: Moon;
@@ -40,6 +53,8 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   private moonOrbit!: THREE.LineLoop;
 
   private cameraOffset = new THREE.Vector3(0, 3, 3);
+
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {}
 
@@ -121,7 +136,8 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   }
 
   private updatePositions(time: number) {
-    const JD = getJulianDateFromSimulatedTime(new Date(this.simulationStartDateMs), time);
+    // ✅ Calcular el JD sumando días al JD base de la fecha exacta
+    const JD = getJulianDateFromSimulatedTime(this.simulationStartDate, time);
 
     if (this.earth) {
       const earthPos = this.earth.getPosition(JD);
@@ -159,6 +175,8 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
     if (!this.isPaused) {
       this.time += 0.01;
+      this.simulatedDate = new Date(this.simulationStartDateMs + this.time * 24 * 60 * 60 * 1000);
+      this.cdr.markForCheck();
     }
 
     this.updatePositions(this.time);
@@ -191,9 +209,14 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     }
 
     this.cameraOffset = pos.clone().sub(target);
+
+    // Opcional: mover cámara y actualizar controles inmediatamente
+    this.camera.position.copy(pos);
+    this.controls.target.copy(target);
+    this.controls.update();
   }
 
   public getSimulatedDate(): Date {
-    return new Date(this.simulationStartDateMs + this.time * 24 * 60 * 60 * 1000);
+    return this.simulatedDate;
   }
 }
