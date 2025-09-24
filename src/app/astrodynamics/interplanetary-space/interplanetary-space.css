@@ -1,4 +1,5 @@
 /* En tu archivo interplanetary-space.css */
+
 .relative {
   position: relative;
 }
@@ -10,6 +11,7 @@
   top: 0;
   left: 0;
   z-index: 1; /* Esto lo coloca detrás de la interfaz */
+  background-color: black; /* Fondo negro por si no carga la imagen */
 }
 
 .ui-container {
@@ -24,6 +26,7 @@
   display: flex;
   justify-content: flex-start; /* Alinea el contenido a la izquierda */
   align-items: flex-start; /* Alinea el contenido a la parte superior */
+  color: white; /* Para que el texto y botones sean visibles */
 }
 
 .panel-left {
@@ -37,15 +40,19 @@
 .control-button {
   background-color: #3b82f6;
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 9999px;
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  transition: all 0.2s;
+  transition: all 0.2s ease-in-out;
+  font-weight: 600;
+  font-size: 1rem;
+  user-select: none;
 }
 
 .control-button:hover {
   background-color: #2563eb;
-  transform: translateY(-2px);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 15px rgba(37, 99, 235, 0.4);
 }

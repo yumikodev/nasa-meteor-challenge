@@ -9,6 +9,7 @@ import { Earth } from '../planets/earth';
 import { Moon } from '../celestial-bodies/moon';
 import { Mars } from '../planets/mars';
 import { createHighlightCircle } from '../../shared/helpers/highlight.helper';
+import { CAMERA_VIEWS } from './camera-views';
 
 @Component({
   selector: 'app-interplanetary-space',
@@ -41,7 +42,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   private moonLabel!: THREE.Sprite;
   private marsLabel!: THREE.Sprite;
 
-  // Highlights (corrected type)
+  // Highlights
   private mercuryHighlight!: THREE.Mesh;
   private venusHighlight!: THREE.Mesh;
   private earthHighlight!: THREE.Mesh;
@@ -150,8 +151,10 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
         this.scene.background = new THREE.Color(0x000000);
       });
 
-    this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    this.camera.position.set(0, 2, 10);
+    this.camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
+
+    // Corrección: Setear posición y target inicial de la cámara y controles
+    this.camera.position.copy(CAMERA_VIEWS.sun.position);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(width, height);
@@ -161,8 +164,10 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.enableZoom = true;
-  }
 
+    this.controls.target.copy(CAMERA_VIEWS.sun.target);
+    this.controls.update();
+  }
   private animate = () => {
     requestAnimationFrame(this.animate);
 
@@ -286,4 +291,23 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   };
+
+  setCameraView(view: keyof typeof CAMERA_VIEWS) {
+    const targetPosition = CAMERA_VIEWS[view];
+    let pos: THREE.Vector3;
+    let target: THREE.Vector3;
+
+    if (typeof targetPosition === 'function') {
+      const viewData = targetPosition(this.earth.mesh.position);
+      pos = viewData.position;
+      target = viewData.target;
+    } else {
+      pos = targetPosition.position;
+      target = targetPosition.target;
+    }
+
+    this.camera.position.copy(pos);
+    this.controls.target.copy(target);
+    this.controls.update();
+  }
 }

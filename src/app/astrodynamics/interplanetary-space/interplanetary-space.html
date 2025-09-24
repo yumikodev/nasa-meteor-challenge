@@ -1,15 +1,22 @@
 <!-- En tu archivo interplanetary-space.html -->
 <div class="relative w-full h-screen">
   <!-- El lienzo de tu simulación 3D -->
-  <div #canvas id="canvas-container"></div>
+  <div #canvas id="canvas-container" class="w-full h-full"></div>
+
   <!-- La interfaz de usuario (se mostrará encima del lienzo) -->
-  <div class="ui-container">
-    <div class="panel-left">
-      <h1 class="text-white text-4xl md:text-5xl font-bold mb-4">Simulación Espacial</h1>
+  <div class="ui-container absolute top-0 left-0 p-4 z-10">
+    <div class="panel-left bg-black bg-opacity-50 p-4 rounded">
+      <h1 class="text-white text-4xl md:text-5xl font-bold mb-4">AsteAsteroides</h1>
+
       <div class="flex gap-4">
-        <button class="control-button">Zoom +</button>
-        <button class="control-button">Zoom -</button>
-        <button class="control-button">Reiniciar Cámara</button>
+        <button class="control-button text-white bg-blue-600 px-4 py-2 rounded"
+                (click)="setCameraView('sun')">
+          Sun
+        </button>
+        <button class="control-button text-white bg-green-600 px-4 py-2 rounded"
+                (click)="setCameraView('earth')">
+          Earth
+        </button>
       </div>
     </div>
   </div>

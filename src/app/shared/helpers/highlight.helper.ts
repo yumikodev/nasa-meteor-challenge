@@ -3,7 +3,7 @@ import * as THREE from 'three';
 export function createHighlightCircle(radius: number, color: number = 0xffff00): THREE.Mesh {
   // Un anillo con un "grosor" notable: el radio interno y externo definen ese grosor
   const innerRadius = radius * 0.85;
-  const outerRadius = radius * 1.15;
+  const outerRadius = radius * 1.5;
   
   const geometry = new THREE.RingGeometry(innerRadius, outerRadius, 64);
   const material = new THREE.MeshBasicMaterial({
