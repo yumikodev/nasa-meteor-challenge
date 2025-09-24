@@ -16,6 +16,10 @@
                 (click)="setCameraView('earth')">
           Earth
         </button>
+        <button class="control-button text-white bg-red-600 px-4 py-2 rounded"
+                (click)="togglePause()">
+          {{ isPaused ? 'Reanudar' : 'Detener' }}
+        </button>
       </div>
     </div>
   </div>

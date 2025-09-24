@@ -1,22 +1,30 @@
 import * as THREE from 'three';
 import { toScaledValue } from '../shared/helpers/scale.helper';
-
+import { getOrbitalPosition, OrbitalElements } from '../shared/helpers/kepler.helper';
 
 export class Moon {
   mesh: THREE.Mesh;
   radius: number;
   orbitRadius: number;
 
+  private orbitalElements: OrbitalElements = {
+    a: 384400 / 149597870.7, // km -> UA
+    e: 0.0549,
+    i: 5.145,
+    omega: 125.08,
+    w: 318.15,
+    M0: 115.3654,
+    epoch: 2451545.0,
+    period: 27.32,
+  };
+
   constructor() {
-    // Datos reales
-    const MOON_RADIUS_KM = 1_737;
+    const MOON_RADIUS_KM = 1737;
     const MOON_DISTANCE_KM = 384_400;
 
-    // Escalado
     this.radius = toScaledValue(MOON_RADIUS_KM);
     this.orbitRadius = toScaledValue(MOON_DISTANCE_KM);
 
-    // Geometría y textura
     const geometry = new THREE.SphereGeometry(this.radius, 64, 64);
     const texture = new THREE.TextureLoader().load('/images/moon.jpg');
     const material = new THREE.MeshBasicMaterial({ map: texture });
@@ -24,15 +32,16 @@ export class Moon {
     this.mesh = new THREE.Mesh(geometry, material);
   }
 
-  // (Opcional) Devuelve una línea que representa su órbita alrededor de la Tierra
+  getRelativePosition(JD: number): THREE.Vector3 {
+    return getOrbitalPosition(this.orbitalElements, JD);
+  }
+
   orbitAroundEarth() {
     const points: THREE.Vector3[] = [];
-
     for (let i = 0; i <= 128; i++) {
-      const angle = (i / 128) * Math.PI * 2;
-      const x = Math.cos(angle) * this.orbitRadius;
-      const z = Math.sin(angle) * this.orbitRadius;
-      points.push(new THREE.Vector3(x, 0, z));
+      const JD = this.orbitalElements.epoch + (i / 128) * this.orbitalElements.period;
+      const pos = getOrbitalPosition(this.orbitalElements, JD);
+      points.push(pos);
     }
 
     const orbitGeometry = new THREE.BufferGeometry().setFromPoints(points);
