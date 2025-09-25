@@ -32,13 +32,13 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   private renderer!: THREE.WebGLRenderer;
   private controls!: OrbitControls;
 
-  private simulationStartDate = new Date('2025-01-01T00:00:00Z'); // ✅ Fecha exacta
+  private simulationStartDate = new Date('2025-01-01T00:00:00Z'); // Fecha exacta
   private simulationStartDateMs = this.simulationStartDate.getTime();
 
   public time: number = 0; // días desde 1 enero 2025 a las 00:00
   public isPaused: boolean = false;
 
-  public simulatedDate: Date = new Date(this.simulationStartDateMs); // ✅ Fecha simulada precisa
+  public simulatedDate: Date = new Date(this.simulationStartDateMs); // Fecha simulada precisa
 
   private earth!: Earth;
   private moon!: Moon;
@@ -53,6 +53,12 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   private moonOrbit!: THREE.LineLoop;
 
   private cameraOffset = new THREE.Vector3(0, 3, 3);
+
+  // Propiedades nuevas para controlar velocidad y límites
+  public speed: number = 1; // Por defecto 1 segundo simulado = 1 segundo real
+  public minSpeed: number = -90; // 3 meses ≈ -90 días
+  public maxSpeed: number = 90; // 3 meses ≈ 90 días
+  private lastFrameTime: number = performance.now();
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -136,7 +142,6 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   }
 
   private updatePositions(time: number) {
-    // ✅ Calcular el JD sumando días al JD base de la fecha exacta
     const JD = getJulianDateFromSimulatedTime(this.simulationStartDate, time);
 
     if (this.earth) {
@@ -172,25 +177,83 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
   private animate = () => {
     requestAnimationFrame(this.animate);
-
+  
+    const now = performance.now();
+    const deltaSec = (now - this.lastFrameTime) / 1000;
+    this.lastFrameTime = now;
+  
     if (!this.isPaused) {
-      this.time += 0.01;
+      let deltaDays = this.speed * deltaSec; // Velocidad ajustada con el tiempo real
+      deltaDays = Math.max(this.minSpeed, Math.min(this.maxSpeed, deltaDays));
+  
+      let newTime = this.time + deltaDays;
+      const simulatedDateCandidate = new Date(
+        this.simulationStartDateMs + newTime * 24 * 60 * 60 * 1000
+      );
+  
+      // Asegurando que el tiempo esté dentro del rango deseado
+      if (simulatedDateCandidate.getFullYear() > 2029) {
+        this.time =
+          (new Date('2029-12-31T00:00:00Z').getTime() - this.simulationStartDateMs) /
+          (24 * 60 * 60 * 1000);
+      } else if (simulatedDateCandidate.getFullYear() < 2020) {
+        this.time =
+          (new Date('2020-01-01T00:00:00Z').getTime() - this.simulationStartDateMs) /
+          (24 * 60 * 60 * 1000);
+      } else {
+        this.time = newTime;
+      }
+  
       this.simulatedDate = new Date(this.simulationStartDateMs + this.time * 24 * 60 * 60 * 1000);
       this.cdr.markForCheck();
     }
-
+  
     this.updatePositions(this.time);
-
+  
+    // Rotación de la Tierra en función del tiempo simulado y la velocidad ajustada
     if (this.earth && !this.isPaused) {
-      this.earth.mesh.rotation.y += 0.02;
+      const rotationSpeed = 0.0001; // Ajustar según la velocidad deseada de rotación
+      const earthRotationPerDay = 2 * Math.PI / 365; // La Tierra da una vuelta por día, 2*pi radianes por 24 horas
+  
+      // La rotación es proporcional a la velocidad del tiempo simulado
+      this.earth.mesh.rotation.y += earthRotationPerDay * this.speed * deltaSec; // Ajustar la rotación por velocidad y tiempo transcurrido
     }
-
+  
+    // Rotación de la Luna sobre su propio eje
+    if (this.moon && !this.isPaused) {
+      const moonRotationSpeed = 0.0005; // Ajustar según la velocidad de rotación de la Luna
+      const moonRotationPerDay = 2 * Math.PI / 27.3; // La Luna da una vuelta sobre su eje en aproximadamente 27.3 días
+  
+      // La rotación es proporcional a la velocidad del tiempo simulado
+      this.moon.mesh.rotation.y += moonRotationPerDay * this.speed * deltaSec; // Ajustar la rotación de la Luna
+    }
+  
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   };
 
+  // Esta función es para manejar el slider de velocidad
+  public setSpeedFromSlider(sliderValue: number) {
+    // 50 es el valor medio donde 1 segundo real = 1 segundo simulado
+    const mid = 50;
+    if (sliderValue == mid) {
+      this.speed = 1; // 1 segundo real = 1 segundo simulado
+    } else if (sliderValue < mid) {
+      // Ajustar velocidad para valores negativos (más lento)
+      this.speed = ((sliderValue / mid) * (1 - this.minSpeed)) + this.minSpeed;
+    } else {
+      // Ajustar velocidad para valores positivos (más rápido)
+      this.speed = (((sliderValue - mid) / (100 - mid)) * (this.maxSpeed - 1)) + 1;
+    }
+  }
+
   public togglePause() {
     this.isPaused = !this.isPaused;
+  }
+
+  public setSpeed(newSpeed: number) {
+    // Ajustar la velocidad, con límites de mínimo y máximo
+    this.speed = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, newSpeed));
   }
 
   public setCameraView(view: keyof typeof CAMERA_VIEWS) {
@@ -209,8 +272,6 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     }
 
     this.cameraOffset = pos.clone().sub(target);
-
-    // Opcional: mover cámara y actualizar controles inmediatamente
     this.camera.position.copy(pos);
     this.controls.target.copy(target);
     this.controls.update();
@@ -220,3 +281,6 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     return this.simulatedDate;
   }
 }
+
+
+ 

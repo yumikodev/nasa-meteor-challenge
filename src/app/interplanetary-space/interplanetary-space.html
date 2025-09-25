@@ -14,6 +14,22 @@
         {{ simulatedDate | date:'HH:mm:ss' }}
       </p>
 
+      <!-- Slider de velocidad -->
+      <div class="mb-4">
+        <label for="speedSlider" class="text-white text-sm mb-1 block">Velocidad (días/s)</label>
+        <input
+          id="speedSlider"
+          type="range"
+          [min]="-maxSpeed"
+          [max]="maxSpeed"
+          [step]="1"
+          [value]="speed"
+          (input)="setSpeed($event.target.valueAsNumber)"
+          class="w-full"
+        />
+        <span class="text-white text-sm">{{ speed }} días/s</span>
+      </div>
+
       <!-- Controles -->
       <div class="flex gap-4">
         <button class="control-button text-white bg-blue-600 px-4 py-2 rounded">
