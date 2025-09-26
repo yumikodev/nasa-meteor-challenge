@@ -1,5 +1,3 @@
-/* En tu archivo interplanetary-space.css */
-
 .relative {
   position: relative;
 }
@@ -10,8 +8,8 @@
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1; /* Esto lo coloca detrás de la interfaz */
-  background-color: black; /* Fondo negro por si no carga la imagen */
+  z-index: 1;
+  background-color: black;
 }
 
 .ui-container {
@@ -20,21 +18,24 @@
   left: 0;
   width: 100%;
   height: 100vh;
-  z-index: 2; /* Esto lo coloca delante del lienzo */
+  z-index: 2;
   pointer-events: none;
   padding: 2rem;
   display: flex;
-  justify-content: flex-start; /* Alinea el contenido a la izquierda */
-  align-items: flex-start; /* Alinea el contenido a la parte superior */
-  color: white; /* Para que el texto y botones sean visibles */
+  justify-content: flex-start;
+  align-items: flex-start;
+  color: white;
 }
 
 .panel-left {
-  pointer-events: auto; /* Permite interactuar con los elementos del panel */
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+  border-radius: 0.5rem;
 }
 
 .control-button {
@@ -62,19 +63,18 @@
   outline-offset: 2px;
 }
 
-/* Estilo opcional para la fecha simulada */
 .simulated-date {
   line-height: 1.4;
   font-size: 1.125rem;
   font-weight: 500;
 }
 
-/* NUEVO ESTILO PARA SLIDER DE VELOCIDAD */
+/* Slider de velocidad */
 input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
   height: 6px;
-  background: #e5e7eb; /* Fondo del track */
+  background: #e5e7eb;
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -86,7 +86,7 @@ input[type="range"]:focus {
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-  background: #e5e7eb; /* Track de fondo inactivo */
+  background: #e5e7eb;
   height: 6px;
   border-radius: 3px;
 }
@@ -134,11 +134,25 @@ input[type="range"]::-moz-range-thumb:focus {
 }
 
 input[type="range"]:focus::-webkit-slider-runnable-track {
-  background: #2563eb; /* Track de fondo cuando está en foco */
+  background: #2563eb;
 }
 
 span {
   font-size: 0.875rem;
   margin-top: 0.25rem;
   display: inline-block;
+}
+
+/* Estilo para la lista de asteroides */
+.asteroid-select {
+  background-color: #1f2937;
+  color: white;
+  border: 1px solid #2563eb;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.asteroid-select:focus {
+  outline: 2px solid #2563eb;
 }

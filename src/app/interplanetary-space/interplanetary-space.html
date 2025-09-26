@@ -14,6 +14,21 @@
         {{ simulatedDate | date:'HH:mm:ss' }}
       </p>
 
+      <!-- Lista de asteroides -->
+      <div class="mb-4">
+        <label for="asteroidSelect" class="text-white text-sm mb-1 block">Seleccionar asteroide</label>
+        <select
+          [(ngModel)]="selectedAsteroidId"
+          (change)="onAsteroidChange()"
+          class="w-full p-2 rounded bg-white text-black"
+        >
+          <option *ngFor="let asteroid of asteroidList" [value]="asteroid.id">
+            {{ asteroid.name }}
+          </option>
+        </select>
+        
+      </div>
+
       <!-- Slider de velocidad -->
       <div class="mb-4">
         <label for="speedSlider" class="text-white text-sm mb-1 block">Velocidad (días/s)</label>

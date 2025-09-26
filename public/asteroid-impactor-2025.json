@@ -1,0 +1,32 @@
+{
+  "id": "1",
+  "name": "Impactor-2025",
+  "geometry": {
+    "radius": 500000
+  },
+  "closeApproachDate": [
+    {
+      "close_approach_date": "2025-09-25",
+      "relative_velocity": {
+        "kilometers_per_second": 25.6,
+        "kilometers_per_hour": 92160
+      },
+      "miss_distance": {
+        "astronomical": 0.05,
+        "lunar": 20,
+        "kilometers": 7500000,
+        "miles": 4660280
+      },
+      "orbiting_body": "Earth"
+    }
+  ],
+  "metadata": {
+    "isPotentiallyHazardous": true,
+    "isSentryObject": false,
+    "absoluteMagnitude": 22.5,
+    "estimatedDiameter": {
+      "min": 0.5,
+      "max": 1.0
+    }
+  }
+}
