@@ -10,23 +10,41 @@
       <!-- Fecha y hora simulada -->
       <p class="simulated-date text-white text-lg mb-2">
         Fecha simulada:<br />
-        {{ simulatedDate | date:'fullDate' }}
-        {{ simulatedDate | date:'HH:mm:ss' }}
+        {{ simulatedDate | date:'fullDate' }} {{ simulatedDate | date:'HH:mm:ss' }}
       </p>
 
-      <!-- Lista de asteroides -->
+      <!-- Buscador de asteroides -->
+      <div class="mb-4">
+        <label for="asteroidSearch" class="text-white text-sm mb-1 block">Buscar asteroide</label>
+        <input
+          id="asteroidSearch"
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="filterAsteroids()"
+          placeholder="Nombre o ID"
+          class="asteroid-search p-2 rounded"
+        />
+      </div>
+
+      <!-- Lista filtrada de asteroides -->
       <div class="mb-4">
         <label for="asteroidSelect" class="text-white text-sm mb-1 block">Seleccionar asteroide</label>
         <select
+          id="asteroidSelect"
           [(ngModel)]="selectedAsteroidId"
-          (change)="onAsteroidChange()"
-          class="w-full p-2 rounded bg-white text-black"
+          (change)="onAsteroidSelect(selectedAsteroidId ?? '')"
+          class="asteroid-select p-2 rounded"
         >
-          <option *ngFor="let asteroid of asteroidList" [value]="asteroid.id">
+          <option *ngFor="let asteroid of filteredAsteroids" [value]="asteroid.id">
             {{ asteroid.name }}
           </option>
         </select>
-        
+      </div>
+
+      <!-- Filtrado por peligrosidad -->
+      <div class="mb-4 flex items-center gap-2">
+        <input type="checkbox" id="hazardousCheck" (change)="filterHazardous($event.target.checked)" />
+        <label for="hazardousCheck" class="text-white text-sm">Solo potencialmente peligrosos</label>
       </div>
 
       <!-- Slider de velocidad -->
@@ -47,7 +65,7 @@
 
       <!-- Controles -->
       <div class="flex gap-4">
-        <button class="control-button text-white bg-blue-600 px-4 py-2 rounded">
+        <button class="control-button text-white bg-yellow-500 px-4 py-2 rounded">
           Sun
         </button>
         <button class="control-button text-white bg-green-600 px-4 py-2 rounded"

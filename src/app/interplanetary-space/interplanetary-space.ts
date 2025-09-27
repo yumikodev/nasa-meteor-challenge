@@ -9,17 +9,20 @@ import {
 import { DatePipe, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as THREE from 'three';
-import { createPlanetLabel } from '../shared/helpers/label.helper';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Sun } from './sun';
 import { Earth } from './earth';
 import { Moon } from './moon';
+//Helpers en su mayoría
+import { toScaledValue } from '../shared/helpers/scale.helper';
+import { createPlanetLabel } from '../shared/helpers/label.helper';
 import { createHighlightCircle } from '../shared/helpers/highlight.helper';
 import { CAMERA_VIEWS } from './camera-views';
 import { getJulianDateFromSimulatedTime } from '../shared/helpers/kepler.helper';
-import { AsteroidService } from '../assets/asteroid.service';
-import { Asteroid } from '../assets/asteroid.model';
-import { Observable } from 'rxjs';
+// NEO Facade (maneja todo el parsing de datos)
+import { AsteroidFacade } from '../core/facades/asteroid.facade';
+import { Asteroid } from '../core/models/neo.model';
+import { NeoAdapter } from '../core/adapters/neo.adapter'; // ruta correcta
 
 
 @Component({
@@ -47,15 +50,21 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
   private earth!: Earth;
   private moon!: Moon;
-  private asteroidData!: Asteroid; // datos de JSON
-  private asteroidMesh!: THREE.Mesh;
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private asteroidFacade: AsteroidFacade
+  ) {}
+  private asteroidData!: Asteroid | null;
+    private asteroidMesh!: THREE.Mesh;
   private asteroidLabel!: THREE.Sprite;
   private asteroidOrbit!: THREE.LineLoop;
   
-  
-
-  public asteroidList: { id: string; name: string; file: string }[] = [];
   public selectedAsteroidId: string | null = null;
+  
+  // NUEVAS PROPIEDADES PARA EL BUSCADOR
+  public searchTerm: string = '';
+  public filteredAsteroids: { id: string; name: string }[] = [];
+  
   
 
   private sunLabel!: THREE.Sprite;
@@ -67,6 +76,12 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
 
   private moonOrbit!: THREE.LineLoop;
 
+  private rotateMesh(mesh: THREE.Object3D, periodDays: number, speedMultiplier?: number) {
+    const factor = speedMultiplier ?? (2 * Math.PI / periodDays);
+    mesh.rotation.y += factor * this.speed;
+  }
+  
+
   private cameraOffset = new THREE.Vector3(0, 3, 3);
 
   // Propiedades nuevas para controlar velocidad y límites
@@ -74,75 +89,117 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
   public minSpeed: number = -90; // 3 meses ≈ -90 días
   public maxSpeed: number = 90; // 3 meses ≈ 90 días
   private lastFrameTime: number = performance.now();
-
-  constructor(
-    private cdr: ChangeDetectorRef,
-    private asteroidService: AsteroidService
-  ) {}
-  
+	public showAsteroidSelector: boolean = true; // controla ventana al centro
 
  ngOnInit(): void {
-   this.asteroidService.getAsteroidList().subscribe(list => {
-     console.log('Asteroids from JSON:', list); // <--- depuración
-     this.asteroidList = list.map(a => ({
-       id: a.id.toString(),
-       name: a.name,
-       file: a.file
-     }));
- 
-     if (this.asteroidList.length > 0) {
-       this.selectedAsteroidId = this.asteroidList[0].id; // <--- muy importante
-       this.selectAsteroid(this.asteroidList[0]);
-     }
-   });
- }
- 
-  
- public onAsteroidChange() {
-   console.log('Selected asteroid id:', this.selectedAsteroidId);
-   const entry = this.asteroidList.find(a => a.id === this.selectedAsteroidId);
-   console.log('Found asteroid entry:', entry);
-   if (entry) this.selectAsteroid(entry);
- }
- 
-  
-  // Cuando seleccionas un asteroide
-  public selectAsteroid(entry: { id: string; name: string; file: string }) {
-    this.selectedAsteroidId = entry.id;
-  
-    this.asteroidService.getAsteroidById(entry.file).subscribe(data => {
-      if (!data) return; // No se encontró el asteroide
-  
-      // eliminar meshes antiguos si existen
-      if (this.asteroidMesh) {
-        this.scene.remove(this.asteroidMesh);
-        this.scene.remove(this.asteroidLabel);
-        this.scene.remove(this.asteroidOrbit);
-      }
-  
-      // Crear mesh dinámico
-      const radius = data.geometry.radius || 1;
-      const geometry = new THREE.SphereGeometry(radius, 16, 16);
-      const material = new THREE.MeshStandardMaterial({ color: 0xffaa00 });
-      this.asteroidMesh = new THREE.Mesh(geometry, material);
-      this.scene.add(this.asteroidMesh);
-  
-      // Crear label
-      this.asteroidLabel = createPlanetLabel(data.name);
-      this.scene.add(this.asteroidLabel);
-  
-      // Crear órbita
-      this.asteroidOrbit = this.createOrbitPath(radius * 50);
-      this.scene.add(this.asteroidOrbit);
-  
-      // Guardar datos para animación
-      this.asteroidData = data;
+    this.asteroidFacade.getAll().subscribe((asteroids: Asteroid[]) => {
+      this.filteredAsteroids = asteroids.map(a => ({ id: a.id, name: a.name }));
     });
   }
-  
-  
-  
+ 
+   
+ public onAsteroidChange() {
+   if (this.selectedAsteroidId) {
+     this.selectAsteroid(this.selectedAsteroidId);
+   }
+ }
 
+public filterAsteroids() {
+  if (!this.searchTerm) {
+    this.asteroidFacade.getAll().subscribe(asteroids => {
+      this.filteredAsteroids = asteroids.map(a => ({ id: a.id, name: a.name }));
+    });
+    return;
+  }
+
+  this.asteroidFacade.search(this.searchTerm).subscribe(asteroids => {
+    this.filteredAsteroids = asteroids.map(a => ({ id: a.id, name: a.name }));
+  });
+}
+
+public filterHazardous(onlyHazardous: boolean) {
+  if (onlyHazardous) {
+    this.asteroidFacade.getHazardous().subscribe(asteroids => {
+      this.filteredAsteroids = asteroids.map(a => ({ id: a.id, name: a.name }));
+    });
+  } else {
+    this.asteroidFacade.getAll().subscribe(asteroids => {
+      this.filteredAsteroids = asteroids.map(a => ({ id: a.id, name: a.name }));
+    });
+  }
+}
+
+public selectFirstFilteredAsteroid() {
+  if (this.filteredAsteroids.length > 0) {
+    this.onAsteroidSelect(this.filteredAsteroids[0].id);
+  }
+}
+
+
+public onAsteroidSelect(id: string) {
+  this.searchTerm = '';
+  this.selectAsteroid(id);
+  this.showAsteroidSelector = false; // cerrar ventana central y empezar simulación
+}
+
+
+private computePosition(asteroid: Asteroid, JD: number): THREE.Vector3 {
+  if (!asteroid.orbit) return new THREE.Vector3(0, 0, 0);
+
+  const a = asteroid.orbit.semiMajorAxis;
+  const e = asteroid.orbit.eccentricity;
+  const i = asteroid.orbit.inclination;
+
+  // cálculo simplificado de posición en XY
+  const theta = (JD % 365) / 365 * 2 * Math.PI;
+  const x = a * (1 - e * e) / (1 + e * Math.cos(theta)) * Math.cos(theta);
+  const y = a * (1 - e * e) / (1 + e * Math.cos(theta)) * Math.sin(theta);
+  const z = Math.sin(i * Math.PI / 180) * y;
+  return new THREE.Vector3(x, z, y);
+}
+ 
+ public selectAsteroid(id: string) {
+   this.selectedAsteroidId = id;
+ 
+   this.asteroidFacade.getById(id).subscribe((asteroid: Asteroid | undefined) => {
+     if (!asteroid) return; // o simplemente: if (!asteroid) { } 
+   
+     // Limpiar asteroide anterior
+     if (this.asteroidMesh) {
+       this.scene.remove(this.asteroidMesh);
+       this.asteroidMesh.geometry.dispose();
+       (this.asteroidMesh.material as THREE.Material).dispose();
+   
+       this.scene.remove(this.asteroidLabel);
+       this.scene.remove(this.asteroidOrbit);
+     }
+   
+     // Crear nuevo asteroide
+     const size = toScaledValue(asteroid.diameterKm);
+     this.asteroidMesh = new THREE.Mesh(
+       new THREE.SphereGeometry(size, 16, 16),
+       new THREE.MeshStandardMaterial({ color: asteroid.isPotentiallyHazardous ? 0xff3300 : 0xffaa00 })
+     );
+     this.scene.add(this.asteroidMesh);
+   
+     const JD = getJulianDateFromSimulatedTime(this.simulationStartDate, this.time);
+     const pos = this.computePosition(asteroid, JD);
+     this.asteroidLabel = createPlanetLabel(asteroid.name);
+     this.asteroidLabel.position.set(pos.x, pos.y + size * 2, pos.z);
+     this.scene.add(this.asteroidLabel);
+   
+     if (!asteroid.orbit) return;
+   
+     const a = toScaledValue(asteroid.orbit.semiMajorAxis);
+     const b = a * Math.sqrt(1 - asteroid.orbit.eccentricity ** 2);
+     this.asteroidOrbit = this.createOrbitEllipse(a, b, asteroid.orbit.inclination);
+     this.scene.add(this.asteroidOrbit);
+   
+     this.asteroidData = asteroid;
+   });
+   
+ }
+ 
   ngAfterViewInit(): void {
     this.initScene();
   
@@ -163,7 +220,7 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.earthLabel = createPlanetLabel('Earth');
     this.scene.add(this.earthLabel);
   
-    this.earthHighlight = createHighlightCircle(this.earth.radius * 4, 0x00ccff);
+	this.earthHighlight = createHighlightCircle(toScaledValue(this.earth.radius * 4), 0x00ccff);
     this.scene.add(this.earthHighlight);
   
     // Luna
@@ -173,12 +230,33 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.moonLabel = createPlanetLabel('Moon');
     this.scene.add(this.moonLabel);
   
-    this.moonHighlight = createHighlightCircle(this.moon.radius * 5, 0xffffff);
+	this.moonHighlight = createHighlightCircle(toScaledValue(this.moon.radius * 5), 0xffffff);
     this.scene.add(this.moonHighlight);
   
     this.moonOrbit = this.moon.orbitAroundEarth();
     this.scene.add(this.moonOrbit);
-  
+
+    this.earth.mesh.castShadow = true;
+    this.earth.mesh.receiveShadow = true;
+    
+    this.moon.mesh.castShadow = true;
+    this.moon.mesh.receiveShadow = true;
+
+    if (this.asteroidMesh) {
+      this.asteroidMesh.castShadow = true;
+      this.asteroidMesh.receiveShadow = true;
+    }
+    
+
+	//Volumen y sobra a tierra y asteroides
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    this.scene.add(ambientLight);
+    
+    const sunLight = new THREE.PointLight(0xffffff, 1.5, 0, 2);
+    sunLight.position.set(0, 0, 0);
+    sunLight.castShadow = true;  // <-- línea nueva
+    this.scene.add(sunLight);
+      
     // Configuración inicial de cámara
     const earthView = CAMERA_VIEWS.earth(new THREE.Vector3(0, 0, 0));
     this.camera.position.copy(earthView.position);
@@ -211,7 +289,9 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(width, height);
     this.canvasRef.nativeElement.appendChild(this.renderer.domElement);
-
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
@@ -234,7 +314,8 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       const earthPos = this.earth.getPosition(JD);
       this.earth.mesh.position.copy(earthPos);
       this.earthHighlight.position.copy(earthPos);
-      this.earthLabel.position.set(earthPos.x, 10, earthPos.z);
+      const earthLabelOffset = Math.max(toScaledValue(this.earth.radius * 4), 1.5);
+      this.earthLabel.position.set(earthPos.x, earthPos.y + earthLabelOffset, earthPos.z);
   
       // Cámara sigue a la Tierra
       const camPos = earthPos.clone().add(this.cameraOffset);
@@ -248,7 +329,8 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       this.moon.mesh.position.copy(moonWorld);
       this.moon.mesh.rotation.y += 0.01;
       this.moonHighlight.position.copy(moonWorld);
-      this.moonLabel.position.set(moonWorld.x, 5, moonWorld.z);
+      const moonLabelOffset = Math.max(toScaledValue(this.moon.radius * 4), 1);
+      this.moonLabel.position.set(moonWorld.x, moonWorld.y + moonLabelOffset, moonWorld.z);
       this.moonOrbit.position.copy(this.earth.mesh.position);
     }
   
@@ -257,18 +339,14 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       this.sunLabel.position.set(0, 10, 0);
     }
   
-    // Asteroide (solo si se ha seleccionado alguno)
+    // Asteroide
     if (this.asteroidMesh && this.asteroidData) {
-      // posición simple: órbita circular a radio fijo alrededor del sol
-      const radius = this.asteroidData.geometry.radius * 50;
-      const angle = (JD / 365) * 2 * Math.PI; // 1 año = 2π
-      const pos = new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-    
+      const pos = this.computePosition(this.asteroidData, JD);
       this.asteroidMesh.position.copy(pos);
-      this.asteroidLabel.position.set(pos.x, 5, pos.z);
-      this.asteroidOrbit.position.set(0, 0, 0); // órbita fija
+      this.asteroidLabel.position.set(pos.x, pos.y + toScaledValue(this.asteroidData.diameterKm), pos.z);
     }
-  
+    
+      
     this.controls.update();
   }
   
@@ -284,7 +362,8 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       // Actualizamos tiempo simulado con límites
       let deltaDays = this.speed * deltaSec;
       deltaDays = Math.max(this.minSpeed, Math.min(this.maxSpeed, deltaDays));
-  
+      this.time += deltaDays;
+        
       let newTime = this.time + deltaDays;
       const simulatedDateCandidate = new Date(
         this.simulationStartDateMs + newTime * 24 * 60 * 60 * 1000
@@ -313,14 +392,13 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
       { mesh: this.moon?.mesh, periodDays: 27.3 },
       { mesh: this.asteroidMesh, periodDays: 10000, speedMultiplier: 0.0001 }
     ];
-    
-  
+      
     rotations.forEach(r => {
       if (r.mesh && !this.isPaused) {
-        const speedFactor = r.speedMultiplier ?? (2 * Math.PI / r.periodDays);
-        r.mesh.rotation.y += speedFactor * this.speed;
+        this.rotateMesh(r.mesh, r.periodDays, r.speedMultiplier);
       }
     });
+    
   
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
@@ -376,17 +454,28 @@ export class InterplanetarySpaceComponent implements OnInit, AfterViewInit {
     return this.simulatedDate;
   }
   
-  private createOrbitPath(radius: number): THREE.LineLoop {
+  private createOrbitEllipse(a: number, b: number, inclination: number = 0): THREE.LineLoop {
+    const segments = 256; // más suave
     const points: THREE.Vector3[] = [];
-    for (let i = 0; i <= 64; i++) {
-      const angle = (i / 64) * 2 * Math.PI;
-      points.push(new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius));
+  
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * 2 * Math.PI;
+      points.push(new THREE.Vector3(Math.cos(angle) * a, 0, Math.sin(angle) * b));
     }
+  
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const material = new THREE.LineBasicMaterial({ color: 0xffaa00 });
-    return new THREE.LineLoop(geometry, material);
+    const material = new THREE.LineDashedMaterial({
+      color: 0xffaa00,
+      dashSize: 0.05,
+      gapSize: 0.025
+    });
+    const ellipse = new THREE.LineLoop(geometry, material);
+    ellipse.computeLineDistances(); // necesario para LineDashedMaterial
+    ellipse.rotateX(inclination * Math.PI / 180);
+    return ellipse;
   }
   
+    
 }
 
 
