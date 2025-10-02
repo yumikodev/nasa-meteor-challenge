@@ -1,5 +1,6 @@
 import { TextureLoader } from 'three';
 import { useLoader } from "@react-three/fiber";
+import { toScaledValue, OrbitalElements, getOrbitalPosition } from '../simulation/orbital';
 
 export function Moon() {
 
