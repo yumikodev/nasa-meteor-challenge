@@ -1,6 +1,3 @@
-// src/app/models/neo.model.ts
-
-// -------------------- Raw API Types (de la API, no tocar) --------------------
 export interface NeoFeed {
   readonly links: NeoFeedLinks;
   readonly element_count: number;
@@ -121,25 +118,38 @@ export interface OrbitClass {
   readonly orbit_class_description: string;
 }
 
-// -------------------- Simplified Model (para UI, Three.js, D3.js) --------------------
+/*----------------------------------------------------------*/
+
 export interface Asteroid {
   id: string;
   name: string;
-  absoluteMagnitude: number; // brillo → útil para D3
-  diameterKm: number;        // radio medio → sphere en Three.js
-  isPotentiallyHazardous: boolean;
-
-  closeApproach: {
-    date: string;
-    velocityKps: number;     // velocidad en km/s → animaciones 3D
-    missDistanceKm: number;  // cercanía → D3 impact maps
+  closeApproachData: {
+    closeApproachDate: string;
+    relativeVelocity: {
+      kilometersPerSecond: number;
+      kilometersPerHour: number;
+    };
+    missDistance: {
+      astronomical: number;
+      lunar: number;
+      kilometers: number;
+      miles: number;
+    };
     orbitingBody: string;
   }[];
-
-  orbit?: {
-    semiMajorAxis: number;   // eje mayor → tamaño órbita
-    eccentricity: number;    // excentricidad → forma órbita
-    inclination: number;     // inclinación → ángulo órbita
-    periodDays: number;      // periodo → animaciones orbitales
+  // Metadatos para UI
+  metadata: {
+    isPotentiallyHazardous: boolean;
+    isSentryObject: boolean;
+    missDistance: {
+      km: number;
+      astronomical: number;
+      lunar: number;
+    };
+    absoluteMagnitude: number;
+    estimatedDiameter: {
+      min: number;
+      max: number;
+    };
   };
 }
