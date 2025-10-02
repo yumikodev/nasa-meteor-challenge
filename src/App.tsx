@@ -1,6 +1,6 @@
 // src/App.tsx
-import Scene from "./scene";
-import { SelectAsteroid } from "./SelectAsteroid";
+import Scene from "./scene/scene";
+import { SelectAsteroid } from "./ui/SelectAsteroid";
 
 function App() {
   //return <SelectAsteroid />;

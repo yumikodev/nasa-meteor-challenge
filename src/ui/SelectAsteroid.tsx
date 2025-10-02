@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getNeoFeed } from "./api/neo";
-import type { Asteroid } from "./api/neo.interfaces";
+import { getNeoFeed } from "../api/neo";
+import type { Asteroid } from "../api/neo.interfaces";
 import { AsteroidList } from "./AsteroidList";
 
 export function SelectAsteroid() {

@@ -1,4 +1,4 @@
-import type { Asteroid } from "./api/neo.interfaces";
+import type { Asteroid } from "../api/neo.interfaces";
 
 interface Props {
   asteroids: Asteroid[];
