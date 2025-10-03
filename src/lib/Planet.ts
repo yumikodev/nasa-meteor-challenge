@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { toScaledValue, getOrbitPosition } from "../simulacion/orbital";
+import { toScaledValue, getOrbitPosition, createOrbitLine } from "../simulacion/orbital";
 import type { OrbitalElements } from "../simulacion/orbital";
 
 interface PlanetOptions {
@@ -41,7 +41,7 @@ export function createPlanet({
   planetPoint.name = `${name}Point`;
   group.add(planetPoint);
 
-  // --- Trayectoria dinámica ---
+  // --- Trayectoria dinámica (trail) ---
   let trailPositions: THREE.Vector3[] = [];
   let trailLine: THREE.Line | undefined;
   if (scene) {
@@ -50,6 +50,12 @@ export function createPlanet({
     trailLine = new THREE.Line(trailGeometry, trailMaterial);
     trailLine.name = `${name}TrailLine`;
     scene.add(trailLine);
+
+    // --- Dibuja la órbita completa fija ---
+    if (orbitalElements) {
+      const orbitLine = createOrbitLine(orbitalElements, color, 360);
+      scene.add(orbitLine);
+    }
   }
 
   // --- Actualización ---
@@ -60,7 +66,7 @@ export function createPlanet({
     planetMesh.visible = distance < radiusScaled * 20;
     planetPoint.visible = !planetMesh.visible;
     if (planetPoint.visible) {
-      (planetPoint.material as THREE.PointsMaterial).size = Math.min(distance * 0.05, 50);
+      (pointMaterial as THREE.PointsMaterial).size = Math.min(distance * 0.05, 50);
     }
 
     // Actualizar posición orbital
@@ -68,7 +74,7 @@ export function createPlanet({
       const pos = getOrbitPosition(orbitalElements, daysElapsed);
       group.position.copy(pos);
 
-      // --- Actualizar trayecto ---
+      // --- Actualizar trayecto dinámico ---
       if (trailLine) {
         trailPositions.push(pos.clone());
         if (trailPositions.length > maxTrailPoints) trailPositions.shift();

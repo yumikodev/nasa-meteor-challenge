@@ -5,6 +5,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 import { createEarth, updateEarth } from "$lib/Earth";
+import { createAsteroid, updateAsteroid } from "$lib/Asteroid";
 import { createSun, updateSun } from "$lib/Sun";
 
 let container: HTMLDivElement;
@@ -19,23 +20,48 @@ const simulationStartDate = new Date("2025-01-01T00:00:00Z");
 let simulatedDate = new Date(simulationStartDate.getTime());
 let lastFrameTime = performance.now();
 
-// --- Funciones de control de tiempo ---
-function togglePause() { isPaused = !isPaused; }
-function setSpeed(newSpeed: number) { speed = Math.max(minSpeed, Math.min(maxSpeed, newSpeed)); }
+// --- Datos UI ---
+let asteroidDistanceAU = 0;
+let asteroidSpeedKms = 0;
 
+const AU_IN_UNITS = 50; // 1 AU = 50 unidades Three.js
+
+// --- Función para mostrar fecha en UTC, 24h ---
+function formatUTCDate(date: Date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+}
+
+function togglePause() { isPaused = !isPaused; }
+
+// --- Nueva función de slider: centro = 0, izquierda = minSpeed, derecha = maxSpeed ---
 function setSpeedFromSlider(sliderValue: number) {
   const mid = 50;
-  if (sliderValue === mid) speed = 1;
-  else if (sliderValue < mid) speed = ((sliderValue / mid) * (1 - minSpeed)) + minSpeed;
-  else speed = (((sliderValue - mid) / (100 - mid)) * (maxSpeed - 1)) + 1;
+  if (sliderValue === mid) speed = 0;
+  else if (sliderValue < mid) speed = minSpeed + (sliderValue / mid) * (0 - minSpeed);
+  else speed = 0 + ((sliderValue - mid) / (100 - mid)) * (maxSpeed - 0);
+}
+
+function calcDistanceAU(pos1: THREE.Vector3, pos2: THREE.Vector3) {
+  return pos1.distanceTo(pos2) / AU_IN_UNITS;
+}
+
+function calcSpeedKms(prevPos: THREE.Vector3, newPos: THREE.Vector3, deltaSec: number) {
+  const KM_PER_UNIT = 149_597_870.7 / AU_IN_UNITS; // km por unidad
+  return prevPos.distanceTo(newPos) * KM_PER_UNIT / deltaSec;
 }
 
 onMount(() => {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
-  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 5000);
-  camera.position.set(100, 100, 100);
+  const camera = new THREE.PerspectiveCamera(75, container.clientWidth/container.clientHeight, 0.001, 5000);
+  camera.position.set(3*AU_IN_UNITS, 3*AU_IN_UNITS, 3*AU_IN_UNITS);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -48,13 +74,12 @@ onMount(() => {
   labelRenderer.domElement.style.pointerEvents = "none";
   container.appendChild(labelRenderer.domElement);
 
-  // --- OrbitControls centrados en la Tierra ---
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  controls.minDistance = 50;
-  controls.maxDistance = 5000;
   controls.enablePan = true;
+  controls.minDistance = 0.1;
+  controls.maxDistance = 5000;
 
   // --- Sol ---
   const sunGroup = createSun();
@@ -62,49 +87,68 @@ onMount(() => {
   const sunLight = new THREE.PointLight(0xffffff, 2);
   sunLight.position.set(0, 0, 0);
   sunGroup.add(sunLight);
-  const sunDiv = document.createElement("div");
-  sunDiv.className = "label";
-  sunDiv.textContent = "Sun";
-  sunGroup.add(new CSS2DObject(sunDiv));
+  const sunLabel = new CSS2DObject(document.createElement("div"));
+  sunLabel.element.className = "label";
+  sunLabel.element.textContent = "Sun";
+  sunGroup.add(sunLabel);
 
   // --- Tierra ---
-  const earth = createEarth({ scene }); // pasar scene para agregar órbita
+  const earth = createEarth({ scene });
   scene.add(earth);
-  const earthLabelDiv = document.createElement("div");
-  earthLabelDiv.className = "label";
-  earthLabelDiv.textContent = "Earth";
-  earth.add(new CSS2DObject(earthLabelDiv));
+  const earthLabel = new CSS2DObject(document.createElement("div"));
+  earthLabel.element.className = "label";
+  earthLabel.element.textContent = "Earth";
+  earth.add(earthLabel);
 
-  // --- Helpers ---
-  scene.add(new THREE.AxesHelper(50));
-  scene.add(new THREE.GridHelper(500, 50));
+  // --- Asteroide ---
+  const asteroid = createAsteroid({
+    scene,
+    name: "Apophis",
+    radiusKm: 0.25,
+    color: 0xffaa00,
+    maxTrailPoints: 1000
+  });
+  scene.add(asteroid);
 
-  // --- Animación ---
+  // --- Grid Helper: cuadritos = 1 AU ---
+  const gridHelper = new THREE.GridHelper(20*AU_IN_UNITS, 20); 
+  gridHelper.position.y = 0;
+  scene.add(gridHelper);
+  scene.add(new THREE.AxesHelper(5*AU_IN_UNITS));
+
+  let prevAsteroidPos = asteroid.position.clone();
+
   function animate() {
     requestAnimationFrame(animate);
     const now = performance.now();
-    const deltaSec = (now - lastFrameTime) / 1000;
+    const deltaSec = (now - lastFrameTime)/1000;
     lastFrameTime = now;
 
     if (!isPaused) {
       daysElapsed += speed * deltaSec;
 
-      // Limites de fecha
+      // --- Limitar fechas ---
+      const newSimTime = simulationStartDate.getTime() + daysElapsed*24*60*60*1000;
       const minDate = new Date("2020-01-01T00:00:00Z").getTime();
-      const maxDate = new Date("2029-12-31T00:00:00Z").getTime();
-      const currentSimTime = simulationStartDate.getTime() + daysElapsed * 24*60*60*1000;
-      if (currentSimTime < minDate) daysElapsed = (minDate - simulationStartDate.getTime()) / (24*60*60*1000);
-      if (currentSimTime > maxDate) daysElapsed = (maxDate - simulationStartDate.getTime()) / (24*60*60*1000);
+      const maxDate = new Date("2029-12-31T23:59:00Z").getTime();
 
-      simulatedDate = new Date(simulationStartDate.getTime() + daysElapsed * 24*60*60*1000);
+      if (newSimTime < minDate) daysElapsed = (minDate - simulationStartDate.getTime()) / (24*60*60*1000);
+      else if (newSimTime > maxDate) daysElapsed = (maxDate - simulationStartDate.getTime()) / (24*60*60*1000);
+
+      simulatedDate = new Date(simulationStartDate.getTime() + daysElapsed*24*60*60*1000);
     }
 
-    // --- Actualizar planetas y sol ---
+    // --- Actualizar objetos ---
     (sunGroup as any).update(camera);
     (earth as any).update(camera, daysElapsed);
     updateEarth(earth, daysElapsed);
+    updateAsteroid(asteroid, daysElapsed);
 
-    // --- Cámara sigue a la Tierra ---
+    // --- Datos del asteroide ---
+    asteroidDistanceAU = calcDistanceAU(earth.position, asteroid.position);
+    asteroidSpeedKms = calcSpeedKms(prevAsteroidPos, asteroid.position, deltaSec);
+    prevAsteroidPos.copy(asteroid.position);
+
     controls.target.copy(earth.position);
     controls.update();
 
@@ -114,9 +158,8 @@ onMount(() => {
 
   animate();
 
-  // --- Resize ---
   window.addEventListener("resize", () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.aspect = container.clientWidth/container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
     labelRenderer.setSize(container.clientWidth, container.clientHeight);
@@ -129,7 +172,7 @@ onMount(() => {
   color: white;
   font-size: 14px;
   font-family: sans-serif;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.5);
   padding: 2px 6px;
   border-radius: 4px;
   pointer-events: none;
@@ -138,10 +181,31 @@ onMount(() => {
 
 <div bind:this={container} class="w-full h-screen relative"></div>
 
-<div class="absolute top-4 left-4 flex gap-2 items-center text-white z-50">
+<div class="absolute top-4 left-4 flex flex-col gap-2 text-white z-50">
   <button on:click={togglePause} class="bg-gray-800 px-3 py-1 rounded hover:bg-gray-700 transition">
     {isPaused ? "Play" : "Pause"}
   </button>
-  <input type="range" min="0" max="100" value="50" on:input={(e) => setSpeedFromSlider((e.target as HTMLInputElement).valueAsNumber)} class="w-32" />
-  <span class="ml-2">{simulatedDate.toDateString()}</span>
+
+  <!-- Fecha en UTC, formato 24h -->
+  <span>{formatUTCDate(simulatedDate)}</span>
+
+  <div class="bg-gray-800 p-2 rounded">
+    <div>Asteroid: Apophis</div>
+    <div>Distance to Earth: {asteroidDistanceAU.toFixed(6)} AU</div>
+    <div>Speed: {asteroidSpeedKms.toFixed(2)} km/s</div>
+  </div>
+
+  <!-- Slider de velocidad -->
+  <div class="bg-gray-800 p-2 rounded flex flex-col gap-1">
+    <div class="flex justify-between items-center">
+      <span>Simulation Speed</span>
+      <span>{speed.toFixed(2)} d/s</span>
+    </div>
+    <input type="range" min="0" max="100" value="50"
+      on:input={(e)=>setSpeedFromSlider((e.target as HTMLInputElement).valueAsNumber)}
+      class="w-32"
+      title="Simulation speed in days per real second"
+    />
+    <div class="text-xs text-gray-300">d/s = days per second real | negative = reverse</div>
+  </div>
 </div>
