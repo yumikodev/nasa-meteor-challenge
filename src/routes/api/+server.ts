@@ -3,7 +3,7 @@ import type { RequestHandler } from "@sveltejs/kit";
 import type { AsteroidResponse } from "../../interfaces/neo.interfaces";
 
 export const GET: RequestHandler = async () => {
-  const res = await fetch("https://nasa-meteor-challenge.koyeb.app/feed");
+  const res = await fetch("https://nasa-meteor-challenge.koyeb.app/asteroids");
   if (!res.ok) return new Response("Error fetching asteroids", { status: 500 });
   
   const data: AsteroidResponse = await res.json();
