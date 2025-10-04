@@ -8,9 +8,9 @@ import {
   createCloseApproachMarkers,
   createAsteroidMesh,
   toScaledValue
-} from "../simulacion/AsteroidOrbital";
-import type { OrbitalElements, OrbitalDataAPI } from "../simulacion/AsteroidOrbital";
-import type { AsteroidDetail, OrbitalData, AsteroidMetadataDetail } from "./interfaces/asteroid.interfaces";
+} from "./AsteroidOrbital";
+import type { OrbitalElements, OrbitalDataAPI } from "./AsteroidOrbital";
+import type { AsteroidDetail, AsteroidMetadataDetail } from "./interfaces/asteroid.interfaces";
 
 interface CloseApproach {
   daysFromEpoch: number;
