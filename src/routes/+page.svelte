@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Asteroid } from "../interfaces/neo.interfaces";
+  import { goto } from '$app/navigation'; // para redireccionar
 
   let dangerousAsteroids: Asteroid[] = [];
   let nonDangerousAsteroids: Asteroid[] = [];
@@ -32,6 +33,10 @@
     const minutes = String(date.getUTCMinutes()).padStart(2, "0");
     const seconds = String(date.getUTCSeconds()).padStart(2, "0");
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+  }
+
+  function goToCartesian() {
+    goto('/cartesian'); // asumiendo que <Cartesian /> está en /cartesian
   }
 </script>
 
@@ -77,14 +82,29 @@
     font-size: 1.5rem;
     font-weight: bold;
     margin-bottom: 1rem;
-    text-align: center; /* centra los títulos */
+    text-align: center;
+  }
+
+  .go-cartesian-btn {
+    margin-top: 2rem;
+    padding: 1rem 2rem;
+    background-color: #f59e0b; /* naranja */
+    color: black;
+    font-weight: bold;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .go-cartesian-btn:hover {
+    background-color: #d97706;
   }
 </style>
 
 <div class="container">
   <!-- Asteroides peligrosos -->
   <div class="flex flex-col items-center w-full max-w-6xl gap-4">
-    <h2 class="section-title">Asteroides peligrosos</h2>
+    <h2 class="section-title">Asteroides peligrosos 🚨</h2>
     {#if loadingAsteroids}
       <p>Cargando...</p>
     {:else}
@@ -108,7 +128,7 @@
 
   <!-- Asteroides no peligrosos -->
   <div class="flex flex-col items-center w-full max-w-6xl gap-4">
-    <h2 class="section-title">Asteroides no peligrosos</h2>
+    <h2 class="section-title">Asteroides no peligrosos 🌙</h2>
     {#if loadingAsteroids}
       <p>Cargando...</p>
     {:else}
@@ -129,7 +149,9 @@
       </div>
     {/if}
   </div>
-</div>
 
-<!-- Cartesian comentado por ahora -->
-<!-- <Cartesian /> -->
+  <!-- Botón final a Cartesian -->
+  <button class="go-cartesian-btn" on:click={goToCartesian}>
+    Diego trabajando aquí abajo
+  </button>
+</div>
