@@ -10,21 +10,29 @@ import { createSun } from "$lib/Sun";
 import { page } from '$app/stores';
 import { get } from 'svelte/store';
 
+// --- Interfaces de asteroide ---
+import type { AsteroidDetail, CloseApproachDataDetail } from '$lib/interfaces/asteroid.interfaces';
+
 let container: HTMLDivElement;
 
 // --- Variables de control de tiempo ---
 let daysElapsed = 0;
 let isPaused = false;
-let speed = 1;
-let minSpeed = -90;
-let maxSpeed = 90;
-const simulationStartDate = new Date("2025-01-01T00:00:00Z");
-let simulatedDate = new Date(simulationStartDate.getTime());
+let speed = 1; // en minutos por segundo real
+const minSpeed = 1;   // 1 minuto por segundo real
+const maxSpeed = 60;  // 60 minutos por segundo real
+let simulatedDate = new Date();
 let lastFrameTime = performance.now();
 
 // --- Variables para recibir asteroide ---
 let selectedAsteroidId: string | null = null;
 let selectedAsteroidDate: string | null = null;
+let asteroidDetail: AsteroidDetail | null = null;
+let approachOnDate: CloseApproachDataDetail | null = null;
+
+// --- Límites de simulación ---
+let simulationMinDate: Date | null = null;
+let simulationMaxDate: Date | null = null;
 
 // --- Tipado del state ---
 interface MyPageState {
@@ -34,13 +42,37 @@ interface MyPageState {
   }
 }
 
-// --- Obtener asteroid del state al montar ---
-onMount(() => {
+// --- Obtener asteroid del state y fetch ---
+onMount(async () => {
   const p = get(page) as { state: MyPageState };
   if (p.state?.asteroid) {
     selectedAsteroidId = p.state.asteroid.id;
     selectedAsteroidDate = p.state.asteroid.nextCloseApproach;
     console.log("Asteroid received:", selectedAsteroidId, selectedAsteroidDate);
+
+    // --- Fetch detalle del asteroide ---
+    try {
+      const res = await fetch(`/api?id=${selectedAsteroidId}`);
+      if (!res.ok) throw new Error("Failed to fetch asteroid detail");
+      asteroidDetail = await res.json() as AsteroidDetail;
+
+      // --- Filtrar closeApproachData por la fecha ---
+      approachOnDate = asteroidDetail.closeApproachData.find(cad => cad.closeApproachDate === selectedAsteroidDate) || null;
+
+      console.log("Asteroid detail:", asteroidDetail);
+      console.log("Approach on selected date:", approachOnDate);
+
+      if (approachOnDate) {
+        simulationMaxDate = new Date(approachOnDate.closeApproachDate);
+        simulationMinDate = new Date(simulationMaxDate.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 días antes
+
+        // Empezamos la simulación desde el mínimo
+        simulatedDate = new Date(simulationMinDate);
+        daysElapsed = 0;
+      }
+    } catch (err) {
+      console.error("Error fetching asteroid detail:", err);
+    }
   }
 
   initThreeJS();
@@ -60,12 +92,11 @@ function formatUTCDate(date: Date) {
 function togglePause() { isPaused = !isPaused; }
 
 function setSpeedFromSlider(sliderValue: number) {
-  const mid = 50;
-  if (sliderValue === mid) speed = 0;
-  else if (sliderValue < mid) speed = minSpeed + (sliderValue / mid) * (0 - minSpeed);
-  else speed = 0 + ((sliderValue - mid) / (100 - mid)) * (maxSpeed - 0);
+  // Slider de 0 a 100
+  speed = minSpeed + ((sliderValue / 100) * (maxSpeed - minSpeed));
 }
 
+// --- Constantes ---
 const AU_IN_UNITS = 50; // 1 AU = 50 unidades Three.js
 
 // --- Inicialización de Three.js ---
@@ -73,8 +104,8 @@ function initThreeJS() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
-  const camera = new THREE.PerspectiveCamera(75, container.clientWidth/container.clientHeight, 0.001, 5000);
-  camera.position.set(3*AU_IN_UNITS, 3*AU_IN_UNITS, 3*AU_IN_UNITS);
+  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.001, 5000);
+  camera.position.set(3 * AU_IN_UNITS, 3 * AU_IN_UNITS, 3 * AU_IN_UNITS);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -98,7 +129,7 @@ function initThreeJS() {
   const sunGroup = createSun();
   scene.add(sunGroup);
   const sunLight = new THREE.PointLight(0xffffff, 2);
-  sunLight.position.set(0,0,0);
+  sunLight.position.set(0, 0, 0);
   sunGroup.add(sunLight);
   const sunLabel = new CSS2DObject(document.createElement("div"));
   sunLabel.element.className = "label";
@@ -113,18 +144,29 @@ function initThreeJS() {
   earthLabel.element.textContent = "Earth";
   earth.add(earthLabel);
 
-  scene.add(new THREE.GridHelper(20*AU_IN_UNITS, 20));
-  scene.add(new THREE.AxesHelper(5*AU_IN_UNITS));
+  scene.add(new THREE.GridHelper(20 * AU_IN_UNITS, 20));
+  scene.add(new THREE.AxesHelper(5 * AU_IN_UNITS));
 
+  // --- Animación ---
   function animate() {
     requestAnimationFrame(animate);
     const now = performance.now();
-    const deltaSec = (now - lastFrameTime)/1000;
+    const deltaSec = (now - lastFrameTime) / 1000;
     lastFrameTime = now;
 
     if (!isPaused) {
-      daysElapsed += speed * deltaSec;
-      simulatedDate = new Date(simulationStartDate.getTime() + daysElapsed*24*60*60*1000);
+      // 1 segundo real = speed minutos
+      const deltaDays = (speed / (24 * 60)) * deltaSec; // convertimos minutos a días
+      daysElapsed += deltaDays;
+
+      let newSimulatedDate = new Date(simulationMinDate!.getTime() + daysElapsed * 24 * 60 * 60 * 1000);
+
+      if (simulationMaxDate && newSimulatedDate > simulationMaxDate) {
+        newSimulatedDate = new Date(simulationMaxDate);
+        daysElapsed = (simulationMaxDate.getTime() - simulationMinDate!.getTime()) / (24 * 60 * 60 * 1000);
+      }
+
+      simulatedDate = newSimulatedDate;
     }
 
     (sunGroup as any).update(camera);
@@ -141,7 +183,7 @@ function initThreeJS() {
   animate();
 
   window.addEventListener("resize", () => {
-    camera.aspect = container.clientWidth/container.clientHeight;
+    camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
     labelRenderer.setSize(container.clientWidth, container.clientHeight);
@@ -151,14 +193,14 @@ function initThreeJS() {
 
 <style>
 :global(.label) {
-  color:white;
-  font-size:14px;
-  font-family:sans-serif;
-  background: rgba(0,0,0,0.5);
-  padding:2px 6px;
-  border-radius:4px;
-  pointer-events:auto;
-  cursor:pointer;
+  color: white;
+  font-size: 14px;
+  font-family: sans-serif;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+  pointer-events: auto;
+  cursor: pointer;
 }
 </style>
 
@@ -175,12 +217,12 @@ function initThreeJS() {
   <div class="bg-gray-800 p-2 rounded flex flex-col gap-1">
     <div class="flex justify-between items-center">
       <span>Simulation Speed</span>
-      <span>{speed.toFixed(2)} d/s</span>
+      <span>{speed.toFixed(2)} min/s</span>
     </div>
     <input type="range" min="0" max="100" value="50"
-      on:input={(e)=>setSpeedFromSlider((e.target as HTMLInputElement).valueAsNumber)}
+      on:input={(e) => setSpeedFromSlider((e.target as HTMLInputElement).valueAsNumber)}
       class="w-32"
     />
-    <div class="text-xs text-gray-300">d/s = days per second real | negative = reverse</div>
+    <div class="text-xs text-gray-300">min/s = minutos por segundo real</div>
   </div>
 </div>

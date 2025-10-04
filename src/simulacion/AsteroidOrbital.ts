@@ -19,7 +19,6 @@ export interface OrbitalElements {
   M0: number;     // Mean anomaly at epoch (deg)
   epoch: number;  // Epoch (Julian Date)
   period: number; // Orbital period (days)
-  tp?: number;    // Time of perihelion (Julian Date), opcional
 }
 
 export interface AsteroidPosition {
@@ -27,122 +26,92 @@ export interface AsteroidPosition {
   label?: string;
 }
 
-// --- API orbital_data raw ---
+// --- API de la NASA ---
 export interface OrbitalDataAPI {
-  semi_major_axis: string;
-  eccentricity: string;
-  inclination: string;
-  ascending_node_longitude: string;
-  perihelion_argument: string;
-  mean_anomaly: string;
-  epoch_osculation: string;
-  orbital_period: string;
-  perihelion_time?: string;
+  semi_major_axis: number;
+  eccentricity: number;
+  inclination: number;
+  ascending_node_longitude: number;
+  perihelion_argument: number;
+  mean_anomaly: number;
+  epoch_osculation: number;
+  orbital_period: number;
 }
 
-// --- Mapear orbital_data a OrbitalElements ---
+// --- Mapear API a OrbitalElements ---
 export function mapOrbitalDataToElements(data: OrbitalDataAPI): OrbitalElements {
   return {
-    a: parseFloat(data.semi_major_axis),
-    e: parseFloat(data.eccentricity),
-    i: parseFloat(data.inclination),
-    omega: parseFloat(data.ascending_node_longitude),
-    w: parseFloat(data.perihelion_argument),
-    M0: parseFloat(data.mean_anomaly),
-    epoch: parseFloat(data.epoch_osculation),
-    period: parseFloat(data.orbital_period),
-    tp: data.perihelion_time ? parseFloat(data.perihelion_time) : undefined
+    a: data.semi_major_axis,
+    e: data.eccentricity,
+    i: data.inclination,
+    omega: data.ascending_node_longitude,
+    w: data.perihelion_argument,
+    M0: data.mean_anomaly,
+    epoch: data.epoch_osculation,
+    period: data.orbital_period,
   };
 }
 
-// --- Posición en órbita usando Kepler ---
-export function getOrbitPosition(
-  elements: OrbitalElements,
-  daysElapsed: number,
-  timeScale = 1
-): THREE.Vector3 {
+// --- Posición en órbita ---
+export function getOrbitPosition(elements: OrbitalElements, daysElapsed: number): THREE.Vector3 {
   const AU_SCALED = toScaledValue(KM_PER_AU);
-
-  let M = (elements.M0 + (360 * daysElapsed * timeScale / elements.period)) % 360;
-
-  if (elements.tp) {
-    const n = 360 / elements.period; 
-    M = n * (daysElapsed * timeScale + elements.epoch - elements.tp);
-  }
-
-  const M_rad = THREE.MathUtils.degToRad(M);
-
-  // Ecuación de Kepler iterativa
   const a = elements.a * AU_SCALED;
   const e = elements.e;
-  let E = M_rad;
-  let delta = 1;
-  let iter = 0;
-  while (delta > 1e-6 && iter < 20) {
-    const E_new = E - (E - e * Math.sin(E) - M_rad) / (1 - e * Math.cos(E));
-    delta = Math.abs(E_new - E);
-    E = E_new;
-    iter++;
+
+  let M = THREE.MathUtils.degToRad((elements.M0 + (360 * daysElapsed / elements.period)) % 360);
+
+  // Ecuación de Kepler iterativa
+  let E = M;
+  for (let i = 0; i < 20; i++) {
+    E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
   }
 
   const xOrb = a * (Math.cos(E) - e);
   const yOrb = a * Math.sqrt(1 - e * e) * Math.sin(E);
 
-  const i_rad = THREE.MathUtils.degToRad(elements.i);
-  const omega_rad = THREE.MathUtils.degToRad(elements.omega);
-  const w_rad = THREE.MathUtils.degToRad(elements.w);
+  const iRad = THREE.MathUtils.degToRad(elements.i);
+  const omegaRad = THREE.MathUtils.degToRad(elements.omega);
+  const wRad = THREE.MathUtils.degToRad(elements.w);
 
-  const cosW = Math.cos(w_rad), sinW = Math.sin(w_rad);
+  const cosW = Math.cos(wRad), sinW = Math.sin(wRad);
   const x1 = xOrb * cosW - yOrb * sinW;
   const y1 = xOrb * sinW + yOrb * cosW;
 
-  const cosOmega = Math.cos(omega_rad), sinOmega = Math.sin(omega_rad);
-  const cosI = Math.cos(i_rad), sinI = Math.sin(i_rad);
+  const cosOmega = Math.cos(omegaRad), sinOmega = Math.sin(omegaRad);
+  const cosI = Math.cos(iRad), sinI = Math.sin(iRad);
 
-  const x2 = x1 * cosOmega - y1 * cosI * sinOmega;
-  const y2 = x1 * sinOmega + y1 * cosI * cosOmega;
-  const z2 = y1 * sinI;
+  const x = x1 * cosOmega - y1 * cosI * sinOmega;
+  const y = x1 * sinOmega + y1 * cosI * cosOmega;
+  const z = y1 * sinI;
 
-  return new THREE.Vector3(x2, z2, y2);
+  return new THREE.Vector3(x, z, y);
 }
 
 // --- Crear línea de órbita ---
-export function createOrbitLine(
-  elements: OrbitalElements,
-  color = 0xffaa00,
-  segments = 360,
-  lineWidth = 1
-): THREE.Line {
+export function createOrbitLine(elements: OrbitalElements, segments = 360): THREE.Line {
   const points: THREE.Vector3[] = [];
   for (let j = 0; j <= segments; j++) {
-    const days = (j / segments) * elements.period;
-    points.push(getOrbitPosition(elements, days));
+    points.push(getOrbitPosition(elements, (j / segments) * elements.period));
   }
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  const material = new THREE.LineBasicMaterial({ color, linewidth: lineWidth });
+  const material = new THREE.LineBasicMaterial({ color: 0xffffff });
   return new THREE.Line(geometry, material);
 }
 
-// --- Crear representación del asteroide ---
-export function createAsteroidMesh(
-  position: THREE.Vector3,
-  diameterKm: number,
-  color = 0xff0000
-): THREE.Mesh {
-  const radius = toScaledValue(diameterKm * 500); // Escalar diámetro a Three.js
+// --- Crear asteroide ---
+export function createAsteroidMesh(position: THREE.Vector3, diameterKm: number): THREE.Mesh {
+  const radius = toScaledValue(diameterKm * 500);
   const geometry = new THREE.SphereGeometry(radius, 16, 16);
-  const material = new THREE.MeshStandardMaterial({ color });
+  const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.copy(position);
   return mesh;
 }
 
-// --- Crear marcadores para close approaches ---
+// --- Crear marcadores ---
 export function createCloseApproachMarkers(
   elements: OrbitalElements,
-  closeApproaches: { daysFromEpoch: number; label?: string; }[],
-  color = 0x00ff00,
-  size = 0.5
+  closeApproaches: { daysFromEpoch: number; label?: string }[]
 ): AsteroidPosition[] {
   return closeApproaches.map(ca => ({
     position: getOrbitPosition(elements, ca.daysFromEpoch),

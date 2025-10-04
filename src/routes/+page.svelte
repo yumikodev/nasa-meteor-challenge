@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Asteroid } from "../interfaces/neo.interfaces";
+  import type { Asteroid } from "../lib/interfaces/neo.interfaces";
   import { goto } from '$app/navigation';
 
   let dangerousAsteroids: Asteroid[] = [];

@@ -1,6 +1,6 @@
 // src/routes/api/+server.ts
 import type { RequestHandler } from "@sveltejs/kit";
-import type { AsteroidResponse } from "../../interfaces/neo.interfaces";
+import type { AsteroidResponse } from "../../lib/interfaces/neo.interfaces";
 
 export const GET: RequestHandler = async ({ url }) => {
   const asteroidId = url.searchParams.get("id"); // Si se pasa ?id=2247517
