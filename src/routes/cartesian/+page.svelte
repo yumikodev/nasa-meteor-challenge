@@ -11,7 +11,7 @@ import { page } from '$app/stores';
 import { get } from 'svelte/store';
 
 // --- Interfaces de asteroide ---
-import type { AsteroidDetail, CloseApproachDataDetail } from '$lib/interfaces/asteroid.interfaces';
+import type { AsteroidDetail, CloseApproachDataDetail, OrbitalData } from '$lib/interfaces/asteroid.interfaces';
 
 let container: HTMLDivElement;
 
@@ -143,6 +143,9 @@ function initThreeJS() {
   earthLabel.element.className = "label";
   earthLabel.element.textContent = "Earth";
   earth.add(earthLabel);
+
+  //Asteroid
+  
 
   scene.add(new THREE.GridHelper(20 * AU_IN_UNITS, 20));
   scene.add(new THREE.AxesHelper(5 * AU_IN_UNITS));
