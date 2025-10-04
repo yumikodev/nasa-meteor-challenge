@@ -5,9 +5,10 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 import { createEarth, updateEarth } from "$lib/Earth";
-import { createAsteroid, updateAsteroid } from "$lib/Asteroid";
 import { createSun } from "$lib/Sun";
-import type { OrbitalDataAPI } from "../../simulacion/AsteroidOrbital";
+
+import { page } from '$app/stores';
+import { get } from 'svelte/store';
 
 let container: HTMLDivElement;
 
@@ -21,13 +22,31 @@ const simulationStartDate = new Date("2025-01-01T00:00:00Z");
 let simulatedDate = new Date(simulationStartDate.getTime());
 let lastFrameTime = performance.now();
 
-// --- Datos UI ---
-let asteroidDistanceAU = 0;
-let asteroidSpeedKms = 0;
-let showAsteroidData = false;
+// --- Variables para recibir asteroide ---
+let selectedAsteroidId: string | null = null;
+let selectedAsteroidDate: string | null = null;
 
-const AU_IN_UNITS = 50; // 1 AU = 50 unidades Three.js
+// --- Tipado del state ---
+interface MyPageState {
+  asteroid?: {
+    id: string;
+    nextCloseApproach: string;
+  }
+}
 
+// --- Obtener asteroid del state al montar ---
+onMount(() => {
+  const p = get(page) as { state: MyPageState };
+  if (p.state?.asteroid) {
+    selectedAsteroidId = p.state.asteroid.id;
+    selectedAsteroidDate = p.state.asteroid.nextCloseApproach;
+    console.log("Asteroid received:", selectedAsteroidId, selectedAsteroidDate);
+  }
+
+  initThreeJS();
+});
+
+// --- Funciones ---
 function formatUTCDate(date: Date) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -47,31 +66,10 @@ function setSpeedFromSlider(sliderValue: number) {
   else speed = 0 + ((sliderValue - mid) / (100 - mid)) * (maxSpeed - 0);
 }
 
-function calcDistanceAU(pos1: THREE.Vector3, pos2: THREE.Vector3) {
-  return pos1.distanceTo(pos2) / AU_IN_UNITS;
-}
+const AU_IN_UNITS = 50; // 1 AU = 50 unidades Three.js
 
-function calcSpeedKms(prevPos: THREE.Vector3, newPos: THREE.Vector3, deltaSec: number) {
-  const KM_PER_UNIT = 149_597_870.7 / AU_IN_UNITS;
-  return prevPos.distanceTo(newPos) * KM_PER_UNIT / deltaSec;
-}
-
-// --- Datos orbitales de Apophis ---
-const apophisOrbitalData: OrbitalDataAPI = {
-  semi_major_axis: "1.532061831012513",
-  eccentricity: ".3349196084403366",
-  inclination: "4.01947843961312",
-  ascending_node_longitude: "15.93152107851185",
-  perihelion_argument: "316.0911979132686",
-  mean_anomaly: "42.55852171148786",
-  epoch_osculation: "2461000.5",
-  orbital_period: "692.6484492957338",
-  perihelion_time: "2460918.616405367275"
-};
-
-let asteroid: THREE.Group;
-
-onMount(() => {
+// --- Inicialización de Three.js ---
+function initThreeJS() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
@@ -115,26 +113,8 @@ onMount(() => {
   earthLabel.element.textContent = "Earth";
   earth.add(earthLabel);
 
-  // Asteroide Apophis
-  asteroid = createAsteroid({
-    scene,
-    name: "Apophis",
-    radiusKm: 0.25,
-    color: 0xffaa00,
-    orbitalData: apophisOrbitalData,
-    maxTrailPoints: 1000
-  });
-  scene.add(asteroid);
-
-  // Label click para mostrar datos
-  const asteroidLabel = asteroid.children.find(c => c instanceof CSS2DObject) as CSS2DObject;
-  asteroidLabel.element.style.cursor = "pointer";
-  asteroidLabel.element.onclick = () => showAsteroidData = !showAsteroidData;
-
   scene.add(new THREE.GridHelper(20*AU_IN_UNITS, 20));
   scene.add(new THREE.AxesHelper(5*AU_IN_UNITS));
-
-  let prevAsteroidPos = asteroid.position.clone();
 
   function animate() {
     requestAnimationFrame(animate);
@@ -150,11 +130,6 @@ onMount(() => {
     (sunGroup as any).update(camera);
     (earth as any).update(camera, daysElapsed);
     updateEarth(earth, daysElapsed);
-    updateAsteroid(asteroid, daysElapsed);
-
-    asteroidDistanceAU = calcDistanceAU(earth.position, asteroid.position);
-    asteroidSpeedKms = calcSpeedKms(prevAsteroidPos, asteroid.position, deltaSec);
-    prevAsteroidPos.copy(asteroid.position);
 
     controls.target.copy(earth.position);
     controls.update();
@@ -171,7 +146,7 @@ onMount(() => {
     renderer.setSize(container.clientWidth, container.clientHeight);
     labelRenderer.setSize(container.clientWidth, container.clientHeight);
   });
-});
+}
 </script>
 
 <style>
@@ -185,13 +160,6 @@ onMount(() => {
   pointer-events:auto;
   cursor:pointer;
 }
-.panel {
-  background-color: rgba(0,0,0,0.8);
-  color:white;
-  padding:1rem;
-  border-radius:8px;
-  max-width:300px;
-}
 </style>
 
 <div bind:this={container} class="w-full h-screen relative"></div>
@@ -202,12 +170,6 @@ onMount(() => {
   </button>
 
   <span>{formatUTCDate(simulatedDate)}</span>
-
-  <div class="bg-gray-800 p-2 rounded">
-    <div>Asteroid: Apophis</div>
-    <div>Distance to Earth: {asteroidDistanceAU.toFixed(6)} AU</div>
-    <div>Speed: {asteroidSpeedKms.toFixed(2)} km/s</div>
-  </div>
 
   <!-- Slider -->
   <div class="bg-gray-800 p-2 rounded flex flex-col gap-1">
@@ -221,13 +183,4 @@ onMount(() => {
     />
     <div class="text-xs text-gray-300">d/s = days per second real | negative = reverse</div>
   </div>
-
-  {#if showAsteroidData}
-    <div class="panel mt-2">
-      <h3>Orbital Data</h3>
-      {#each Object.entries(apophisOrbitalData) as [key, value]}
-        <div><strong>{key}:</strong> {value}</div>
-      {/each}
-    </div>
-  {/if}
 </div>

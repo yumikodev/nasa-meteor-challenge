@@ -1,9 +1,21 @@
-// Asteroid.ts
+// src/lib/Asteroid.ts
 import * as THREE from "three";
 import { createPlanet } from "./Planet";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { getOrbitPosition, createOrbitLine } from "../simulacion/AsteroidOrbital";
-import type { OrbitalDataAPI, OrbitalElements } from "../simulacion/AsteroidOrbital";
+import { 
+  getOrbitPosition, 
+  createOrbitLine, 
+  mapOrbitalDataToElements,
+  createCloseApproachMarkers,
+  createAsteroidMesh,
+  toScaledValue
+} from "../simulacion/AsteroidOrbital";
+import type { OrbitalElements, OrbitalDataAPI } from "../simulacion/AsteroidOrbital";
+
+interface CloseApproach {
+  daysFromEpoch: number;
+  label?: string;
+}
 
 interface AsteroidOptions {
   scene?: THREE.Scene;
@@ -11,6 +23,7 @@ interface AsteroidOptions {
   radiusKm?: number;
   color?: number;
   orbitalData?: OrbitalDataAPI; // Pasamos el orbital_data de la API
+  closeApproaches?: CloseApproach[];
   maxTrailPoints?: number;
 }
 
@@ -25,79 +38,58 @@ export function createAsteroid(options?: AsteroidOptions): THREE.Group {
     throw new Error("Debe proveerse orbitalData con los datos del asteroide");
   }
 
-  // --- Mapear a OrbitalElements para precisión ---
-  const orbitalElements: OrbitalElements = {
-    a: parseFloat(orbitalData.semi_major_axis),
-    e: parseFloat(orbitalData.eccentricity),
-    i: parseFloat(orbitalData.inclination),
-    omega: parseFloat(orbitalData.ascending_node_longitude),
-    w: parseFloat(orbitalData.perihelion_argument),
-    M0: parseFloat(orbitalData.mean_anomaly),
-    epoch: parseFloat(orbitalData.epoch_osculation),
-    period: parseFloat(orbitalData.orbital_period),
-    tp: orbitalData.perihelion_time ? parseFloat(orbitalData.perihelion_time) : undefined
-  };
+  // --- Mapear a OrbitalElements usando utilitario ---
+  const orbitalElements: OrbitalElements = mapOrbitalDataToElements(orbitalData);
 
   // Grupo principal
-  const asteroid = createPlanet({
-    name,
+  const asteroidGroup = new THREE.Group();
+  asteroidGroup.name = name;
+
+  // --- Crear malla del asteroide ---
+  const asteroidMesh = createAsteroidMesh(
+    getOrbitPosition(orbitalElements, 0),
     radiusKm,
-    color,
-    orbitalElements,
-    scene: options?.scene,
-    maxTrailPoints: options?.maxTrailPoints ?? 500
-  });
+    color
+  );
+  asteroidGroup.add(asteroidMesh);
 
-  // Guardamos orbitalData para referencia
-  (asteroid as any).orbitalData = orbitalData;
-
-  // --- Dibujar órbita completa ---
+  // --- Dibujar órbita ---
   if (options?.scene) {
     const orbitLine = createOrbitLine(orbitalElements, color, 360);
     options.scene.add(orbitLine);
   }
 
-  // --- Label ---
+  // --- Labels ---
   if (options?.scene) {
     const labelDiv = document.createElement("div");
     labelDiv.className = "label";
     labelDiv.textContent = name;
-    asteroid.add(new CSS2DObject(labelDiv));
+    asteroidGroup.add(new CSS2DObject(labelDiv));
   }
 
-  return asteroid;
-}
+  // --- Close Approaches ---
+  if (options?.scene && options.closeApproaches) {
+    const markers = createCloseApproachMarkers(orbitalElements, options.closeApproaches, 0x00ff00, 0.5);
+    markers.forEach(m => {
+      const markerMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(toScaledValue(0.2), 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+      );
+      markerMesh.position.copy(m.position);
+      asteroidGroup.add(markerMesh);
 
-// --- Actualizar posición ---
-export function updateAsteroid(asteroidGroup: THREE.Group, daysElapsed: number) {
-  const orbitalData = (asteroidGroup as any).orbitalData as OrbitalDataAPI;
-  if (!orbitalData) return;
-
-  const elements: OrbitalElements = {
-    a: parseFloat(orbitalData.semi_major_axis),
-    e: parseFloat(orbitalData.eccentricity),
-    i: parseFloat(orbitalData.inclination),
-    omega: parseFloat(orbitalData.ascending_node_longitude),
-    w: parseFloat(orbitalData.perihelion_argument),
-    M0: parseFloat(orbitalData.mean_anomaly),
-    epoch: parseFloat(orbitalData.epoch_osculation),
-    period: parseFloat(orbitalData.orbital_period),
-    tp: orbitalData.perihelion_time ? parseFloat(orbitalData.perihelion_time) : undefined
-  };
-
-  const pos = getOrbitPosition(elements, daysElapsed);
-  asteroidGroup.position.copy(pos);
-
-  const mesh = asteroidGroup.getObjectByName(asteroidGroup.name + "Mesh") as THREE.Mesh;
-  if (mesh?.visible) {
-    mesh.rotation.y += 0.02;
-    mesh.rotation.x += 0.01;
+      if (m.label) {
+        const labelDiv = document.createElement("div");
+        labelDiv.className = "label";
+        labelDiv.textContent = m.label;
+        markerMesh.add(new CSS2DObject(labelDiv));
+      }
+    });
   }
 
-  const point = asteroidGroup.getObjectByName(asteroidGroup.name + "Point") as THREE.Points;
-  if (point) {
-    const cameraDistance = asteroidGroup.parent?.getObjectByProperty("type", "Camera")?.position.distanceTo(asteroidGroup.position) ?? 100;
-    point.visible = !mesh.visible;
-    (point.material as THREE.PointsMaterial).size = Math.min(cameraDistance * 0.05, 50);
-  }
+  // Guardamos orbitalData para referencia
+  (asteroidGroup as any).orbitalData = orbitalData;
+  (asteroidGroup as any).orbitalElements = orbitalElements;
+
+  return asteroidGroup;
 }

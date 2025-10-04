@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Asteroid } from "../interfaces/neo.interfaces";
-  import { goto } from '$app/navigation'; // para redireccionar
+  import { goto } from '$app/navigation';
 
   let dangerousAsteroids: Asteroid[] = [];
   let nonDangerousAsteroids: Asteroid[] = [];
@@ -9,40 +9,35 @@
 
   async function fetchAsteroids() {
     try {
-      const res = await fetch("/api/");
+      const res = await fetch("/api");
       if (!res.ok) throw new Error("Error fetching asteroids");
       const data = await res.json();
-      dangerousAsteroids = data.dangerous;
-      nonDangerousAsteroids = data.nonDangerous;
+      dangerousAsteroids = data.dangerous || [];
+      nonDangerousAsteroids = data.nonDangerous || [];
     } catch (err) {
       console.error("Error obteniendo asteroides:", err);
+      dangerousAsteroids = [];
+      nonDangerousAsteroids = [];
     } finally {
       loadingAsteroids = false;
     }
   }
 
-  onMount(() => {
-    fetchAsteroids();
-  });
+  onMount(fetchAsteroids);
 
-  function formatUTCDate(date: Date) {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const hours = String(date.getUTCHours()).padStart(2, "0");
-    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
-    const seconds = String(date.getUTCSeconds()).padStart(2, "0");
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
-  }
-
-  function goToCartesian() {
-    goto('/cartesian'); // asumiendo que <Cartesian /> está en /cartesian
+  // Envía solo id y fecha a /cartesian
+  function selectAsteroid(asteroid: Asteroid) {
+    const payload = {
+      id: asteroid.id,
+      nextCloseApproach: asteroid.closeApproachData[0]?.closeApproachDate
+    };
+    goto('/cartesian', { state: { asteroid: payload } });
   }
 </script>
 
 <style>
   :global(body) {
-    background-color: #1e3a8a; /* fondo azul */
+    background-color: #1e3a8a;
     margin: 0;
   }
 
@@ -59,11 +54,11 @@
     text-align: left;
     border-radius: 0.375rem;
     border: 1px solid #444;
-    background-color: #2563eb; /* azul más claro */
+    background-color: #2563eb;
     color: #fff;
     box-shadow: 0 1px 2px rgba(0,0,0,0.5);
     transition: background 0.2s;
-    cursor: default;
+    cursor: pointer;
     padding: 1rem;
   }
 
@@ -75,7 +70,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
     gap: 1rem;
-    justify-items: center; /* centra cada botón dentro de la grid */
+    justify-items: center;
   }
 
   .section-title {
@@ -83,21 +78,6 @@
     font-weight: bold;
     margin-bottom: 1rem;
     text-align: center;
-  }
-
-  .go-cartesian-btn {
-    margin-top: 2rem;
-    padding: 1rem 2rem;
-    background-color: #f59e0b; /* naranja */
-    color: black;
-    font-weight: bold;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .go-cartesian-btn:hover {
-    background-color: #d97706;
   }
 </style>
 
@@ -107,10 +87,12 @@
     <h2 class="section-title">Asteroides peligrosos 🚨</h2>
     {#if loadingAsteroids}
       <p>Cargando...</p>
+    {:else if dangerousAsteroids.length === 0}
+      <p>No hay asteroides peligrosos por ahora.</p>
     {:else}
       <div class="grid-asteroids w-full">
         {#each dangerousAsteroids as asteroid (asteroid.id)}
-          <button class="asteroid-btn">
+          <button class="asteroid-btn" on:click={() => selectAsteroid(asteroid)}>
             <p class="font-semibold">{asteroid.name}</p>
             <p class="text-sm">Magnitud absoluta: {asteroid.metadata.absoluteMagnitude}</p>
             <p class="text-sm">
@@ -131,10 +113,12 @@
     <h2 class="section-title">Asteroides no peligrosos 🌙</h2>
     {#if loadingAsteroids}
       <p>Cargando...</p>
+    {:else if nonDangerousAsteroids.length === 0}
+      <p>No hay asteroides no peligrosos por ahora.</p>
     {:else}
       <div class="grid-asteroids w-full">
         {#each nonDangerousAsteroids as asteroid (asteroid.id)}
-          <button class="asteroid-btn">
+          <button class="asteroid-btn" on:click={() => selectAsteroid(asteroid)}>
             <p class="font-semibold">{asteroid.name}</p>
             <p class="text-sm">Magnitud absoluta: {asteroid.metadata.absoluteMagnitude}</p>
             <p class="text-sm">
@@ -149,9 +133,4 @@
       </div>
     {/if}
   </div>
-
-  <!-- Botón final a Cartesian -->
-  <button class="go-cartesian-btn" on:click={goToCartesian}>
-    Diego trabajando aquí abajo
-  </button>
 </div>
