@@ -7,10 +7,16 @@ export const GET: RequestHandler = async () => {
   if (!res.ok) return new Response("Error fetching asteroids", { status: 500 });
   
   const data: AsteroidResponse = await res.json();
-  // Filtramos solo los peligrosos
-  const dangerous = data.asteroids.filter(a => a.metadata.isPotentiallyHazardous);
 
-  return new Response(JSON.stringify(dangerous), {
+  // Filtramos peligrosos y no peligrosos
+  const dangerous = data.asteroids.filter(a => a.metadata.isPotentiallyHazardous);
+  const nonDangerous = data.asteroids.filter(a => !a.metadata.isPotentiallyHazardous);
+
+  // Devolvemos ambos en un solo objeto
+  return new Response(JSON.stringify({
+    dangerous,
+    nonDangerous
+  }), {
     headers: { "Content-Type": "application/json" }
   });
 };
