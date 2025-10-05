@@ -31,6 +31,7 @@
       </div>
     </div>
     <div class="hidden md:flex items-center gap-6 text-sm text-white">
+      <!-- svelte-ignore a11y_invalid_attribute -->
       <a
         href="#"
         rel="noreferrer"
