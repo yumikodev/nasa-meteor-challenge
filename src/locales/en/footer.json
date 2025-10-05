@@ -1,0 +1,20 @@
+{
+  "slogan": "Tracking and monitoring near-Earth objects to protect our planet.",
+  "resources": {
+    "title": "Resources",
+    "nasa": "NASA Resources",
+    "api": "API Access"
+  },
+  "about": {
+    "title": "About",
+    "mission": "Mission",
+    "team": "Team",
+    "contact": "Contact"
+  },
+  "opensource": {
+    "title": "OpenSource",
+    "frontend": "Frontend",
+    "backend": "Backend"
+  },
+  "copyright": "2025 SPACE GEN Z. All data is publicly available."
+}

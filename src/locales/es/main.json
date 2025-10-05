@@ -1,0 +1,10 @@
+{
+  "title": "Detección y Monitoreo de Meteoritos",
+  "description": "Rastreo en tiempo real de objetos cercanos a la Tierra, meteoritos y asteroides. Impulsado por la red avanzada de detección de la NASA.",
+  "button_view_asteroids": "Ver asteroides cercanos",
+  "stats": {
+    "hazardous_asteroids": "Asteroides Peligrosos",
+    "approaching_earth": "Acercándose a la Tierra",
+    "sentry_objects": "Asteroides en Monitoreo"
+  }
+}

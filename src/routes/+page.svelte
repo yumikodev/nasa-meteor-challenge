@@ -6,6 +6,7 @@
   import { OrbitIcon, TriangleAlertIcon, SatelliteIcon } from "@lucide/svelte";
   import { onMount } from "svelte";
   import Footer from "../components/Footer.svelte";
+  import { t } from "$lib/translations";
 
   let data: Asteroids | null = null;
   let loading = true;
@@ -37,16 +38,17 @@
 
     <div class="relative z-10 text-center max-w-5xl mx-auto px-6 pt-6">
       <h1
-        class="text-4xl md:text-6xl lg:text-8xl mb-6 bg-gradient-to-r from-white via-cyan-200 to-blue-400 bg-clip-text text-transparent"
+        class="text-4xl font-bold md:text-6xl lg:text-8xl mb-6 bg-gradient-to-r from-white via-cyan-200 to-blue-400 bg-clip-text text-transparent"
       >
-        Detección y Monitoreo de Meteoritos
+        {$t("home.title")}
       </h1>
       <p class="text-lg md:text-xl text-white mb-8 max-w-2xl mx-auto px-4">
-        Rastreo en tiempo real de objetos cercanos a la Tierra, meteoritos y
-        asteroides. Impulsado por la red avanzada de detección de la NASA.
+        {$t("home.description")}
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center px-4">
-        <a class="btn-primary" href="#asteroids"> Ver asteroides cercanos </a>
+        <a class="btn-primary" href="#asteroids">
+          {$t("home.button_view_asteroids")}
+        </a>
       </div>
     </div>
   </section>
@@ -66,7 +68,7 @@
           </div>
           <div class="text-xl md:text-3xl mb-1 text-white">0</div>
           <div class="text-xs md:text-sm text-gray-200">
-            Asteroides peligrosos
+            {$t("home.stats.hazardous_asteroids")}
           </div>
         </div>
 
@@ -82,7 +84,7 @@
           </div>
           <div class="text-xl md:text-3xl mb-1 text-white">0</div>
           <div class="text-xs md:text-sm text-gray-200">
-            Asteroides cercanos a la Tierra
+            {$t("home.stats.approaching_earth")}
           </div>
         </div>
 
@@ -116,7 +118,7 @@
             {data.metadata.hazardousCount}
           </div>
           <div class="text-xs md:text-sm text-gray-200">
-            Asteroides peligrosos
+            {$t("home.stats.hazardous_asteroids")}
           </div>
         </div>
 
@@ -134,7 +136,7 @@
             {data.metadata.totalCount}
           </div>
           <div class="text-xs md:text-sm text-gray-200">
-            Asteroides cercanos a la Tierra
+            {$t("home.stats.approaching_earth")}
           </div>
         </div>
 
@@ -152,7 +154,7 @@
             {data.metadata.sentryCount}
           </div>
           <div class="text-xs md:text-sm text-gray-200">
-            Asteroides en monitoreo
+            {$t("home.stats.sentry_objects")}
           </div>
         </div>
       {/if}

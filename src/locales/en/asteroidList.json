@@ -1,0 +1,27 @@
+{
+  "title": "Asteroid List",
+  "filter": {
+    "view": "View",
+    "all": "All",
+    "hazardous": "Potentially hazardous",
+    "limit": "Limit",
+    "noLimit": "No limit"
+  },
+  "selected": "Selected",
+  "simulation": "Start simulation",
+  "diameter": "Diameter",
+  "approachDate": "Approach date",
+  "minDistance": "Minimum distance",
+  "status": {
+    "hazardous": "Hazardous",
+    "sentry": "Monitored",
+    "safe": "Not hazardous"
+  },
+  "pagination": {
+    "first": "First page",
+    "prev": "Previous page",
+    "next": "Next page",
+    "page": "Page",
+    "of": "of"
+  }
+}

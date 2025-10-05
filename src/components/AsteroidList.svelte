@@ -11,6 +11,7 @@
   } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { t, locale } from "$lib/translations";
 
   let data: Asteroids | null = null;
   let loading = true;
@@ -96,43 +97,45 @@
   id="asteroids"
   class="max-w-7xl mx-auto px-4 md:px-6 py-14 relative z-20"
 >
-  <h3 class="text-center text-4xl font-bold mb-8">Lista de asteroides</h3>
+  <h3 class="text-center text-4xl font-bold mb-8">{$t("asteroidList.title")}</h3>
 
   <div
     class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4"
   >
     <div class="flex items-center gap-2">
       <label class="text-sm font-medium"
-        >Ver:
+        >{$t("asteroidList.filter.view")}:
 
         <select
           class="bg-gray-800 border border-gray-600 rounded px-2 py-1"
           bind:value={showOnlyHazardous}
         >
-          <option value={false}>Todos</option>
-          <option value={true}>Potencialmente peligrosos</option>
+          <option value={false}>{$t("asteroidList.filter.all")}</option>
+          <option value={true}>{$t("asteroidList.filter.hazardous")}</option>
         </select>
       </label>
       <label class="text-sm font-medium ml-4"
-        >Límite:
+        >{$t("asteroidList.filter.limit")}:
         <input
           type="number"
           min="1"
           max="50"
           class="bg-gray-800 border border-gray-600 rounded px-2 py-1 w-20"
           bind:value={limit}
-          placeholder="Sin límite"
+          placeholder={$t("asteroidList.filter.noLimit")}
         />
       </label>
     </div>
     <div class="flex items-center gap-4">
-      <p class="text-lg font-semibold">Seleccionados: {selectedCount}</p>
+      <p class="text-lg font-semibold">
+        {$t("asteroidList.selected")}: {selectedCount}
+      </p>
       <button
         class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         on:click={goToCartesian}
         disabled={selectedCount === 0}
       >
-        Iniciar simulación
+        {$t("asteroidList.simulation")}
       </button>
     </div>
   </div>
@@ -176,19 +179,19 @@
         >
           <div class="text-lg font-semibold mb-2">{asteroid.name}</div>
           <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
-            <RulerIcon class="size-4" /> Diámetro: {(
+            <RulerIcon class="size-4" /> {$t("asteroidList.diameter")}: {(
               asteroid.metadata.estimatedDiameter.min * 1000
             ).toFixed(2)}m -{" "}
             {(asteroid.metadata.estimatedDiameter.max * 1000).toFixed(2)}m
           </div>
           <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
-            <CalendarIcon class="size-4" /> Fecha de acercamiento:{" "}
+            <CalendarIcon class="size-4" /> {$t("asteroidList.approachDate")}:{" "}
             {new Date(
               asteroid.closeApproachData[0].closeApproachDate
-            ).toLocaleDateString("es-ES")}
+            ).toLocaleDateString($locale === 'en' ? "en-US" : "es-ES")}
           </div>
           <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
-            <RulerDimensionLineIcon class="size-4" /> Distancia mínima:{" "}
+            <RulerDimensionLineIcon class="size-4" /> {$t("asteroidList.minDistance")}:{" "}
             {(asteroid.metadata.missDistance?.km ?? 0).toFixed(2)}{" "}
             km
           </div>
@@ -200,10 +203,10 @@
               !asteroid.metadata.isPotentiallyHazardous}
           >
             {asteroid.metadata.isPotentiallyHazardous
-              ? "Peligroso"
+              ? $t("asteroidList.status.hazardous")
               : asteroid.metadata.isSentryObject
-                ? "En monitoreo"
-                : "No peligroso"}
+                ? $t("asteroidList.status.sentry")
+                : $t("asteroidList.status.safe")}
           </div>
         </label>
       {/each}
@@ -217,7 +220,7 @@
         class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"
         on:click={() => goToPage(1)}
         disabled={currentPage === 1}
-        aria-label="Primera página"
+        aria-label={$t("asteroidList.pagination.first")}
       >
         <HouseIcon size={20} />
       </button>
@@ -225,18 +228,18 @@
         class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"
         on:click={prevPage}
         disabled={currentPage === 1}
-        aria-label="Página anterior"
+        aria-label={$t("asteroidList.pagination.prev")}
       >
         <ChevronLeftIcon size={20} />
       </button>
       <span class="mx-2 text-lg font-semibold">
-        Página {currentPage} de {totalPages}
+        {$t("asteroidList.pagination.page")} {currentPage} {$t("asteroidList.pagination.of")} {totalPages}
       </span>
       <button
         class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"
         on:click={nextPage}
         disabled={currentPage === totalPages}
-        aria-label="Página siguiente"
+        aria-label={$t("asteroidList.pagination.next")}
       >
         <ChevronRightIcon size={20} />
       </button>

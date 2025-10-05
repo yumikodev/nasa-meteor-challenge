@@ -1,0 +1,20 @@
+{
+  "slogan": "Rastreando y monitoreando objetos cercanos a la Tierra para proteger nuestro planeta.",
+  "resources": {
+    "title": "Recursos",
+    "nasa": "Recursos de NASA",
+    "api": "Acceso a API"
+  },
+  "about": {
+    "title": "Acerca de",
+    "mission": "Misión",
+    "team": "Equipo",
+    "contact": "Contacto"
+  },
+  "opensource": {
+    "title": "OpenSource",
+    "frontend": "Frontend",
+    "backend": "Backend"
+  },
+  "copyright": "2025 SPACE GEN Z. Todos los datos son de acceso público."
+}

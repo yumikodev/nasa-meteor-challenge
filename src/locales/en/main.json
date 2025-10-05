@@ -1,0 +1,10 @@
+{
+  "title": "Detection and Monitoring of Meteors",
+  "description": "Real-time tracking of near-Earth objects, meteors, and asteroids. Powered by NASA's advanced detection network.",
+  "button_view_asteroids": "View nearby asteroids",
+  "stats": {
+    "hazardous_asteroids": "Hazardous Asteroids",
+    "approaching_earth": "Approaching Earth",
+    "sentry_objects": "Monitored Asteroids"
+  }
+}

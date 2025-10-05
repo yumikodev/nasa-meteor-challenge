@@ -1,5 +1,6 @@
 <script lang="ts">
   import logo from "$lib/assets/logo.webp";
+  import { t } from "$lib/translations";
 </script>
 
 <footer class="border-t border-white/10 bg-gray-900/50 backdrop-blur-sm">
@@ -11,71 +12,70 @@
           <span class="font-bold text-white">SPACE GEN Z</span>
         </div>
         <p class="text-sm text-gray-200">
-          Rastreando y monitoreando objetos cercanos a la Tierra para proteger
-          nuestro planeta.
+          {$t("footer.slogan")}
         </p>
       </div>
 
       <div>
-        <h4 class="mb-4 text-white">Recursos</h4>
+        <h4 class="mb-4 text-white">{$t("footer.resources.title")}</h4>
         <ul class="space-y-2 text-sm text-gray-200">
           <li>
             <a
               href="https://www.spaceappschallenge.org/2025/challenges/meteor-madness/?tab=resources"
               target="_blank"
-              class="hover:text-cyan-400 transition-colors">Recursos de NASA</a
+              class="hover:text-cyan-400 transition-colors">{$t("footer.resources.nasa")}</a
             >
           </li>
           <li>
             <a
               href="https://nasa-meteor-challenge.koyeb.app/docs"
               target="_blank"
-              class="hover:text-cyan-400 transition-colors">Acceso a API</a
+              class="hover:text-cyan-400 transition-colors">{$t("footer.resources.api")}</a
             >
           </li>
         </ul>
       </div>
 
       <div>
-        <h4 class="mb-4 text-white">Acerca de</h4>
+        <h4 class="mb-4 text-white">{$t("footer.about.title")}</h4>
         <ul class="space-y-2 text-sm text-gray-200">
           <li>
             <a
               href="https://www.spaceappschallenge.org/2025/challenges/meteor-madness"
-              class="hover:text-cyan-400 transition-colors">Misión</a
+              class="hover:text-cyan-400 transition-colors">{$t("footer.about.mission")}</a
             >
           </li>
           <li>
             <a
               href="https://www.spaceappschallenge.org/2025/find-a-team/capibaras-espaciales/?tab=members"
               target="_blank"
-              class="hover:text-cyan-400 transition-colors">Equipo</a
+              class="hover:text-cyan-400 transition-colors">{$t("footer.about.team")}</a
             >
           </li>
           <li>
             <a
               href="mailto:ejibajazuniga@gmail.com"
-              class="hover:text-cyan-400 transition-colors">Contacto</a
+              class="hover:text-cyan-400 transition-colors">{$t("footer.about.contact")}</a
             >
           </li>
         </ul>
       </div>
 
       <div>
-        <h4 class="mb-4 text-white">OpenSource</h4>
+        <h4 class="mb-4 text-white">{$t("footer.opensource.title")}</h4>
         <ul class="space-y-2 text-sm text-gray-200">
           <li>
             <a
               href="https://github.com/yumikodev/nasa-meteor-challenge"
               target="_blank"
-              class="hover:text-cyan-400 transition-colors">Frontend</a
+              class="hover:text-cyan-400 transition-colors">{$t("footer.opensource.frontend")}</a
             >
           </li>
           <li>
             <a
               href="https://github.com/yumikodev/nasa-meteor-challenge-api"
               target="_blank"
-              class="hover:text-cyan-400 transition-colors">Backend</a
+              class="hover:text-cyan-400 transition-colors">{$t("footer.opensource.backend")}</a
             >
           </li>
         </ul>
@@ -85,7 +85,7 @@
     <div
       class="pt-8 border-t border-white/10 text-center text-sm text-gray-200"
     >
-      <p>© 2025 SPACE GEN Z. Todos los datos son de acceso público.</p>
+      <p>{$t("footer.copyright")}</p>
     </div>
   </div>
 </footer>

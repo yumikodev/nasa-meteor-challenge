@@ -1,0 +1,27 @@
+{
+  "title": "Lista de asteroides",
+  "filter": {
+    "view": "Ver",
+    "all": "Todos",
+    "hazardous": "Potencialmente peligrosos",
+    "limit": "Límite",
+    "noLimit": "Sin límite"
+  },
+  "selected": "Seleccionados",
+  "simulation": "Iniciar simulación",
+  "diameter": "Diámetro",
+  "approachDate": "Fecha de acercamiento",
+  "minDistance": "Distancia mínima",
+  "status": {
+    "hazardous": "Peligroso",
+    "sentry": "En monitoreo",
+    "safe": "No peligroso"
+  },
+  "pagination": {
+    "first": "Primera página",
+    "prev": "Página anterior",
+    "next": "Página siguiente",
+    "page": "Página",
+    "of": "de"
+  }
+}
