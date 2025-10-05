@@ -10,7 +10,7 @@ import {
   toScaledValue
 } from "./AsteroidOrbital";
 import type { OrbitalElements, OrbitalDataAPI } from "./AsteroidOrbital";
-import type { AsteroidDetail, AsteroidMetadataDetail } from "./interfaces/asteroid.interfaces";
+import type { AsteroidDetails, AsteroidsMetadata, EstimatedDiameter } from "./interfaces/asteroid.interfaces";
 
 interface CloseApproach {
   daysFromEpoch: number;
@@ -20,14 +20,15 @@ interface CloseApproach {
 interface AsteroidOptions {
   scene?: THREE.Scene;
   orbitalData: OrbitalDataAPI;             // Pasamos el orbital_data de la API
-  metadata: AsteroidMetadataDetail;       // Nombre real y otros datos
-  detail: AsteroidDetail;
+  metadata: AsteroidsMetadata;       // Nombre real y otros datos
+  detail: AsteroidDetails;
+  estimatedDiameterKm: EstimatedDiameter;
   closeApproaches?: CloseApproach[];
 }
 
 // --- Crear asteroide realista ---
 export function createAsteroid(options: AsteroidOptions): THREE.Group {
-  const { orbitalData, metadata, detail, scene, closeApproaches } = options;
+  const { orbitalData, estimatedDiameterKm, metadata, detail, scene, closeApproaches } = options;
 
   if (!orbitalData) {
     throw new Error("Debe proveerse orbitalData con los datos del asteroide");
@@ -44,7 +45,7 @@ export function createAsteroid(options: AsteroidOptions): THREE.Group {
   asteroidGroup.name = detail.name;
 
   // --- Crear malla del asteroide (blanco) ---
-  const diameterKm = (metadata.estimatedDiameterKm.min + metadata.estimatedDiameterKm.max) / 2;
+  const diameterKm = (estimatedDiameterKm.min + estimatedDiameterKm.max) / 2;
   const asteroidMesh = createAsteroidMesh(
     getOrbitPosition(orbitalElements, 0),
     diameterKm
