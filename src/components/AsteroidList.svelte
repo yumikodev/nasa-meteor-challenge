@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { Asteroids } from "$lib/interfaces/asteroid.interfaces";
+  import { ChevronLeftIcon, ChevronRightIcon, HomeIcon } from "@lucide/svelte";
   import { onMount } from "svelte";
 
   let data: Asteroids | null = null;
   let loading = true;
-  let error: string | null = null;
   let emptyList = Array.from({ length: 12 }).map((_, i) => i);
   let selectedAsteroidsMap = new Map<string, string>();
 
@@ -19,8 +19,6 @@
       );
       if (!res.ok) throw new Error("Error al cargar los datos");
       data = await res.json();
-    } catch (e) {
-      error = "No se pudieron cargar los datos";
     } finally {
       loading = false;
     }
@@ -51,6 +49,31 @@
     // Forzar reactividad
     selectedAsteroidsMap = new Map(selectedAsteroidsMap);
   }
+
+  // Paginación
+  let currentPage = 1;
+  const ITEMS_PER_PAGE = 8;
+  $: totalPages = filteredAsteroids.length
+    ? Math.ceil(filteredAsteroids.length / ITEMS_PER_PAGE)
+    : 1;
+
+  function goToPage(page: number) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+  }
+
+  function prevPage() {
+    if (currentPage > 1) currentPage--;
+  }
+
+  function nextPage() {
+    if (currentPage < totalPages) currentPage++;
+  }
+
+  $: paginatedAsteroids = filteredAsteroids.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 </script>
 
 <section
@@ -121,7 +144,7 @@
         </div>
       {/each}
     {:else if data}
-      {#each filteredAsteroids as asteroid}
+      {#each paginatedAsteroids as asteroid}
         <input
           id={asteroid.id}
           type="checkbox"
@@ -169,4 +192,37 @@
       {/each}
     {/if}
   </div>
+
+  <!-- Paginación -->
+  {#if !loading && filteredAsteroids.length > 0}
+    <div class="flex justify-center items-center gap-2 mt-8">
+      <button
+        class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"
+        on:click={() => goToPage(1)}
+        disabled={currentPage === 1}
+        aria-label="Primera página"
+      >
+        <HomeIcon size={20} />
+      </button>
+      <button
+        class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"
+        on:click={prevPage}
+        disabled={currentPage === 1}
+        aria-label="Página anterior"
+      >
+        <ChevronLeftIcon size={20} />
+      </button>
+      <span class="mx-2 text-lg font-semibold">
+        Página {currentPage} de {totalPages}
+      </span>
+      <button
+        class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"
+        on:click={nextPage}
+        disabled={currentPage === totalPages}
+        aria-label="Página siguiente"
+      >
+        <ChevronRightIcon size={20} />
+      </button>
+    </div>
+  {/if}
 </section>
