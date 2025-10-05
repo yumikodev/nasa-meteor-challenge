@@ -3,6 +3,7 @@
   import AnimatedSpaceBg from "../components/AnimatedSpaceBg.svelte";
   import AsteroidList from "../components/AsteroidList.svelte";
   import Navbar from "../components/Navbar.svelte";
+  import { OrbitIcon, TriangleAlertIcon, SatelliteIcon } from "@lucide/svelte";
   import { onMount } from "svelte";
 
   let data: Asteroids | null = null;
@@ -55,6 +56,13 @@
         <div
           class="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-xl"
         >
+          <div class="flex items-start justify-between mb-3 md:mb-4">
+            <div
+              class="p-2 md:p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg"
+            >
+              <TriangleAlertIcon class="w-4 h-4 md:w-6 md:h-6 text-cyan-400" />
+            </div>
+          </div>
           <div class="text-xl md:text-3xl mb-1 text-white">0</div>
           <div class="text-xs md:text-sm text-gray-200">
             Asteroides peligrosos
@@ -64,6 +72,13 @@
         <div
           class="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-xl"
         >
+          <div class="flex items-start justify-between mb-3 md:mb-4">
+            <div
+              class="p-2 md:p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg"
+            >
+              <OrbitIcon class="w-4 h-4 md:w-6 md:h-6 text-cyan-400" />
+            </div>
+          </div>
           <div class="text-xl md:text-3xl mb-1 text-white">0</div>
           <div class="text-xs md:text-sm text-gray-200">
             Asteroides cercanos a la Tierra
@@ -73,6 +88,13 @@
         <div
           class="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-xl"
         >
+          <div class="flex items-start justify-between mb-3 md:mb-4">
+            <div
+              class="p-2 md:p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg"
+            >
+              <SatelliteIcon class="w-4 h-4 md:w-6 md:h-6 text-cyan-400" />
+            </div>
+          </div>
           <div class="text-xl md:text-3xl mb-1 text-white">0</div>
           <div class="text-xs md:text-sm text-gray-200">
             Asteroides en monitoreo
@@ -82,6 +104,13 @@
         <div
           class="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-xl"
         >
+          <div class="flex items-start justify-between mb-3 md:mb-4">
+            <div
+              class="p-2 md:p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg"
+            >
+              <TriangleAlertIcon class="w-4 h-4 md:w-6 md:h-6 text-cyan-400" />
+            </div>
+          </div>
           <div class="text-xl md:text-3xl mb-1 text-white">
             {data.metadata.hazardousCount}
           </div>
@@ -93,6 +122,13 @@
         <div
           class="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-xl"
         >
+          <div class="flex items-start justify-between mb-3 md:mb-4">
+            <div
+              class="p-2 md:p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg"
+            >
+              <OrbitIcon class="w-4 h-4 md:w-6 md:h-6 text-cyan-400" />
+            </div>
+          </div>
           <div class="text-xl md:text-3xl mb-1 text-white">
             {data.metadata.totalCount}
           </div>
@@ -104,6 +140,13 @@
         <div
           class="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-xl"
         >
+          <div class="flex items-start justify-between mb-3 md:mb-4">
+            <div
+              class="p-2 md:p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-lg"
+            >
+              <SatelliteIcon class="w-4 h-4 md:w-6 md:h-6 text-cyan-400" />
+            </div>
+          </div>
           <div class="text-xl md:text-3xl mb-1 text-white">
             {data.metadata.sentryCount}
           </div>
