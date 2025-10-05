@@ -34,6 +34,9 @@ const maxSpeed = 180;
 // --- Datos y estructuras ---
 let asteroidsData: AsteroidDetails[] = [];
 let asteroidGroups: { group: AsteroidGroup; markers: THREE.Mesh[] }[] = [];
+// --- Distancias en AU (actualizadas en cada frame) ---
+let asteroidDistances: { name: string; distanceAU: number }[] = [];
+
 
 const AU_IN_UNITS = 50; // solo para helpers visuales
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -131,8 +134,6 @@ function initThreeJS() {
   asteroidsData.forEach(detail => {
     // aseguramos orbitalData normalizado
     const orbitalAPI = (detail as any).orbitalData ?? detail.orbitalData;
-    console.log("Detail: "+detail)
-    console.log("Mira: "+orbitalAPI)
 
     // crear el grupo visual (createAsteroid dibuja la órbita fija)
     const group = createAsteroid({
@@ -169,6 +170,7 @@ function initThreeJS() {
     nameLabel.position.set(0, 0, 0);
     group.add(nameLabel);
 
+
     scene.add(group);
 
     // close approach markers (rojos) si los hay
@@ -203,6 +205,8 @@ function initThreeJS() {
   // --- Animación principal ---
   function animate() {
     requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
     const now = performance.now();
     const deltaSec = (now - lastFrameTime) / 1000;
     lastFrameTime = now;
@@ -220,6 +224,19 @@ function initThreeJS() {
       const pos = getOrbitPosition(item.group.orbitalElements, daysSinceEpoch);
       item.group.position.set(pos.x, pos.y, pos.z);
     });
+
+        // --- Calcular distancias Tierra ↔ asteroide ---
+    asteroidDistances = asteroidGroups.map(item => {
+      const asteroidPos = item.group.position.clone();
+      const earthPos = earth.position.clone();
+
+      const distanceInUnits = asteroidPos.distanceTo(earthPos);
+      const distanceAU = distanceInUnits / AU_IN_UNITS;
+
+      const name = item.group.name || "Unnamed";
+      return { name, distanceAU };
+    });
+
 
     // Hacemos que la Tierra esté en su posición para la fecha simulada
     const daysSinceBase = (simulatedDate.getTime() - BASE_DATE.getTime()) / MS_PER_DAY;
@@ -284,4 +301,14 @@ function initThreeJS() {
     />
     <div class="text-xs text-gray-300">min/s = minutos simulados por segundo real (min {minSpeed} — max {maxSpeed})</div>
   </div>
+    {#if asteroidDistances.length > 0}
+      <div class="mt-2 text-sm">
+        <strong>Distances from Earth (AU):</strong>
+        <ul class="list-disc list-inside">
+          {#each asteroidDistances as d}
+            <li>{d.name}: {d.distanceAU.toFixed(3)} AU</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
 </div>

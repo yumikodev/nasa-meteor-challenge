@@ -51,12 +51,16 @@ export function createAsteroid(options: AsteroidOptions): THREE.Group {
     scene.add(orbitLine);
   }
 
-  // --- Label con nombre ---
   if (scene) {
     const labelDiv = document.createElement("div");
-    labelDiv.className = "label";
+    labelDiv.className =
+      "label absolute bg-black/70 text-white text-xs font-semibold rounded px-1 py-0.5 shadow-md border border-white/20 backdrop-blur-sm";
     labelDiv.textContent = detail.name;
-    asteroidGroup.add(new CSS2DObject(labelDiv));
+    console.log("Nombre del asteroide:", detail.name);
+
+    const labelObj = new CSS2DObject(labelDiv);
+    labelObj.position.set(0, (diameterKm / 1000) + 0.05, 0);
+    asteroidGroup.add(labelObj);
   }
 
   // --- Guardar referencias ---
