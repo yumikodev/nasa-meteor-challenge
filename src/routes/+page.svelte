@@ -5,6 +5,7 @@
   import Navbar from "../components/Navbar.svelte";
   import { OrbitIcon, TriangleAlertIcon, SatelliteIcon } from "@lucide/svelte";
   import { onMount } from "svelte";
+  import Footer from "../components/Footer.svelte";
 
   let data: Asteroids | null = null;
   let loading = true;
@@ -159,4 +160,6 @@
   </section>
 
   <AsteroidList />
+
+  <Footer />
 </div>
