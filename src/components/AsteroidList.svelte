@@ -1,6 +1,13 @@
 <script lang="ts">
   import type { Asteroids } from "$lib/interfaces/asteroid.interfaces";
-  import { ChevronLeftIcon, ChevronRightIcon, HomeIcon } from "@lucide/svelte";
+  import {
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    HouseIcon,
+    RulerIcon,
+    CalendarIcon,
+    RulerDimensionLineIcon,
+  } from "@lucide/svelte";
   import { onMount } from "svelte";
 
   let data: Asteroids | null = null;
@@ -158,20 +165,20 @@
           class:card-focus={selectedAsteroidsMap.has(asteroid.id)}
         >
           <div class="text-lg font-semibold mb-2">{asteroid.name}</div>
-          <div class="text-sm text-gray-300 mb-1">
-            Diámetro: {(asteroid.metadata.estimatedDiameter.min * 1000).toFixed(
-              2
-            )}m -{" "}
+          <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
+            <RulerIcon class="size-4" /> Diámetro: {(
+              asteroid.metadata.estimatedDiameter.min * 1000
+            ).toFixed(2)}m -{" "}
             {(asteroid.metadata.estimatedDiameter.max * 1000).toFixed(2)}m
           </div>
-          <div class="text-sm text-gray-300 mb-1">
-            Fecha de acercamiento:{" "}
+          <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
+            <CalendarIcon class="size-4" /> Fecha de acercamiento:{" "}
             {new Date(
               asteroid.closeApproachData[0].closeApproachDate
             ).toLocaleDateString("es-ES")}
           </div>
-          <div class="text-sm text-gray-300 mb-1">
-            Distancia mínima:{" "}
+          <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
+            <RulerDimensionLineIcon class="size-4" /> Distancia mínima:{" "}
             {(asteroid.metadata.missDistance?.km ?? 0).toFixed(2)}{" "}
             km
           </div>
@@ -202,7 +209,7 @@
         disabled={currentPage === 1}
         aria-label="Primera página"
       >
-        <HomeIcon size={20} />
+        <HouseIcon size={20} />
       </button>
       <button
         class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"
