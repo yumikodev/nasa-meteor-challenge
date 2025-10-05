@@ -31,14 +31,20 @@
       </div>
     </div>
     <div class="hidden md:flex items-center gap-6 text-sm text-white">
-      <a href="#dashboard" class="hover:text-cyan-400 transition-colors"
-        >Panel</a
+      <a
+        href="#"
+        rel="noreferrer"
+        target="_top"
+        class="hover:text-cyan-400 transition-colors">Inicio</a
       >
-      <a href="#tracking" class="hover:text-cyan-400 transition-colors"
-        >Seguimiento</a
+      <a href="#asteroids" class="hover:text-cyan-400 transition-colors"
+        >Asteroides</a
       >
-      <a href="#game" class="hover:text-cyan-400 transition-colors">Desafío</a>
-      <a href="#about" class="hover:text-cyan-400 transition-colors">Info</a>
+      <a href="#challenge" class="hover:text-cyan-400 transition-colors"
+        >Desafío</a
+      >
+      <a href="#about" class="hover:text-cyan-400 transition-colors">Nosotros</a
+      >
     </div>
     <div class="text-xs md:text-sm text-cyan-400 font-mono">
       <div class="hidden md:block">
