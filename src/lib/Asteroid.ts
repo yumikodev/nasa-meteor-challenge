@@ -5,37 +5,25 @@ import {
   getOrbitPosition, 
   createOrbitLine, 
   mapOrbitalDataToElements,
-  createCloseApproachMarkers,
   createAsteroidMesh,
   toScaledValue
 } from "./AsteroidOrbital";
 import type { OrbitalElements, OrbitalDataAPI } from "./AsteroidOrbital";
-import type { AsteroidDetails, AsteroidsMetadata, EstimatedDiameter } from "./interfaces/asteroid.interfaces";
-
-interface CloseApproach {
-  daysFromEpoch: number;
-  label?: string;
-}
+import type { AsteroidDetails, EstimatedDiameter } from "./interfaces/asteroid.interfaces";
 
 interface AsteroidOptions {
   scene?: THREE.Scene;
-  orbitalData: OrbitalDataAPI;             // Pasamos el orbital_data de la API
-  metadata: AsteroidsMetadata;       // Nombre real y otros datos
+  orbitalData: OrbitalDataAPI;      
   detail: AsteroidDetails;
   estimatedDiameterKm: EstimatedDiameter;
-  closeApproaches?: CloseApproach[];
 }
 
-// --- Crear asteroide realista ---
+// --- Crear asteroide simplificado ---
 export function createAsteroid(options: AsteroidOptions): THREE.Group {
-  const { orbitalData, estimatedDiameterKm, metadata, detail, scene, closeApproaches } = options;
+  const { orbitalData, estimatedDiameterKm, detail, scene } = options;
 
-  if (!orbitalData) {
-    throw new Error("Debe proveerse orbitalData con los datos del asteroide");
-  }
-  if (!detail?.name) {
-    throw new Error("Debe proveerse el nombre real del asteroide en metadata.name");
-  }
+  if (!orbitalData) throw new Error("Debe proveerse orbitalData con los datos del asteroide");
+  if (!detail?.name) throw new Error("Debe proveerse el nombre real del asteroide en metadata.name");
 
   // --- Mapear a OrbitalElements ---
   const orbitalElements: OrbitalElements = mapOrbitalDataToElements(orbitalData);
@@ -44,21 +32,19 @@ export function createAsteroid(options: AsteroidOptions): THREE.Group {
   const asteroidGroup = new THREE.Group();
   asteroidGroup.name = detail.name;
 
-  // --- Crear malla del asteroide (blanco) ---
+  // --- Crear malla del asteroide ---
   const diameterKm = (estimatedDiameterKm.min + estimatedDiameterKm.max) / 2;
-  const asteroidMesh = createAsteroidMesh(
-    getOrbitPosition(orbitalElements, 0),
-    diameterKm
-  );
+  const initialPosition = getOrbitPosition(orbitalElements, 0) ?? new THREE.Vector3(0,0,0);
+  const asteroidMesh = createAsteroidMesh(initialPosition, diameterKm);
   asteroidGroup.add(asteroidMesh);
 
-  // --- Dibujar órbita (blanca) ---
+  // --- Dibujar órbita ---
   if (scene) {
     const orbitLine = createOrbitLine(orbitalElements);
     scene.add(orbitLine);
   }
 
-  // --- Label con nombre real ---
+  // --- Label con nombre ---
   if (scene) {
     const labelDiv = document.createElement("div");
     labelDiv.className = "label";
@@ -66,27 +52,7 @@ export function createAsteroid(options: AsteroidOptions): THREE.Group {
     asteroidGroup.add(new CSS2DObject(labelDiv));
   }
 
-  // --- Close Approaches (blanco) ---
-  if (scene && closeApproaches) {
-    const markers = createCloseApproachMarkers(orbitalElements, closeApproaches);
-    markers.forEach(m => {
-      const markerMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(toScaledValue(0.2), 8, 8),
-        new THREE.MeshStandardMaterial({ color: 0xffffff })
-      );
-      markerMesh.position.copy(m.position);
-      asteroidGroup.add(markerMesh);
-
-      if (m.label) {
-        const labelDiv = document.createElement("div");
-        labelDiv.className = "label";
-        labelDiv.textContent = m.label;
-        markerMesh.add(new CSS2DObject(labelDiv));
-      }
-    });
-  }
-
-  // Guardamos referencia a datos y elementos
+  // --- Guardar referencias ---
   (asteroidGroup as any).orbitalData = orbitalData;
   (asteroidGroup as any).orbitalElements = orbitalElements;
 

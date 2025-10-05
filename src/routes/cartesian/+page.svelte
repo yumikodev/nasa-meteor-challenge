@@ -6,110 +6,146 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 
 import { createEarth, updateEarth } from "$lib/Earth";
 import { createSun } from "$lib/Sun";
-import {
-  createAsteroidMesh,
-  getOrbitPosition,
-  mapOrbitalDataToElements,
-  createCloseApproachMarkers
-} from "$lib/AsteroidOrbital";
+import { createAsteroid } from "$lib/Asteroid";
+import { getOrbitPosition, mapOrbitalDataToElements } from "$lib/AsteroidOrbital";
 
-import type { AsteroidDetails, CloseApproachDatum, OrbitalData } from "$lib/interfaces/asteroid.interfaces";
+import type { AsteroidDetails } from "$lib/interfaces/asteroid.interfaces";
+import type { OrbitalDataAPI, OrbitalElements } from "$lib/AsteroidOrbital";
 
-let container: HTMLDivElement;
+// --- Tipado del grupo de asteroide (extendemos Group para guardar elements/epoch) ---
+interface AsteroidGroup extends THREE.Group {
+  orbitalElements: OrbitalElements;
+  epochMs?: number;
+}
 
-// --- Control de tiempo ---
-let daysElapsed = 0;
-let isPaused = false;
-let speed = 1;
-const minSpeed = 1;
-const maxSpeed = 60;
-let simulatedDate = new Date();
+// --- Contenedor DOM ---
+let container: HTMLDivElement | null = null;
+
+// --- Tiempo base y simulación ---
+const BASE_DATE = new Date("2025-10-01T00:00:00Z"); // comienzo de la vista
+let simulatedDate = new Date(BASE_DATE);
 let lastFrameTime = performance.now();
 
-// --- Asteroides seleccionados ---
-let selectedAsteroidIds: string[] = [];
+// speed: minutos simulados por segundo real
+let speed = 30;
+const minSpeed = 30;
+const maxSpeed = 180;
+
+// --- Datos y estructuras ---
 let asteroidDetails: AsteroidDetails[] = [];
-let orbitalDataList: OrbitalData[] = [];
+let asteroidGroups: { group: AsteroidGroup; markers: THREE.Mesh[] }[] = [];
 
-// --- Límites de simulación ---
-let simulationMinDate: Date | null = null;
-let simulationMaxDate: Date | null = null;
+const AU_IN_UNITS = 50; // solo para helpers visuales
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-// --- Control de velocidad ---
+// --- UI controles ---
+let isPaused = false;
 function togglePause() { isPaused = !isPaused; }
 function setSpeedFromSlider(sliderValue: number) {
   speed = minSpeed + ((sliderValue / 100) * (maxSpeed - minSpeed));
 }
 
-const AU_IN_UNITS = 50;
-
-// --- Parsear fechas de la API de forma segura ---
-function parseAsteroidDetail(json: any): AsteroidDetails {
-  const orbital = json.orbitalData || {};
-  return {
-    ...json,
-    closeApproachData: (json.closeApproachData || []).map((cad: any) => ({
-      ...cad,
-      closeApproachDate: cad.closeApproachDate ? new Date(cad.closeApproachDate) : new Date()
-    })),
-    orbitalData: {
-      ...orbital,
-      orbitDeterminationDate: orbital.orbitDeterminationDate ? new Date(orbital.orbitDeterminationDate) : new Date(),
-      first_observation_date: orbital.first_observation_date ? new Date(orbital.first_observation_date) : new Date(),
-      last_observation_date: orbital.last_observation_date ? new Date(orbital.last_observation_date) : new Date(),
-    }
-  };
+// --- Julian date (JD) -> ms since unix epoch ---
+function julianToMs(jd: number) {
+  return (jd - 2440587.5) * MS_PER_DAY;
 }
 
-// --- Map orbitalData seguro ---
-function mapToOrbitalDataAPI(data: OrbitalData) {
-  return {
-    semi_major_axis: data.semiMajorAxis ?? 1,
-    eccentricity: data.eccentricity ?? 0,
-    inclination: data.inclination ?? 0,
-    ascending_node_longitude: data.ascendingNodeLongitude ?? 0,
-    perihelion_argument: data.perihelionArgument ?? 0,
-    mean_anomaly: data.meanAnomaly ?? 0,
-    epoch_osculation: data.epochOsculation ?? Date.now(),
-    orbital_period: data.orbitalPeriod ?? 365
-  };
-}
-
-// --- onMount ---
-onMount(async () => {
-  const url = new URL(window.location.href);
-  const idsParam = url.searchParams.get("ids");
-  if (!idsParam) return;
-  selectedAsteroidIds = idsParam.split(",");
-
-  asteroidDetails = await Promise.all(
-    selectedAsteroidIds.map(async id => {
-      const res = await fetch(`/api?id=${id}`);
-      if (!res.ok) throw new Error(`Error fetching asteroid ${id}`);
-      const json = await res.json();
-      return parseAsteroidDetail(json);
-    })
-  );
-
-  orbitalDataList = asteroidDetails.map(a => a.orbitalData);
-
-  const dates = asteroidDetails
-    .flatMap(a => a.closeApproachData.map(c => c.closeApproachDate.getTime()))
-    .filter(Boolean);
-
-  if (dates.length > 0) {
-    simulationMaxDate = new Date(Math.max(...dates));
-    simulationMinDate = new Date(simulationMaxDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-    simulatedDate = new Date(simulationMinDate);
+// --- Normalizador robusto de orbitalData (acepta snake_case y camelCase) ---
+function mapToOrbitalDataAPI(data: any): OrbitalDataAPI {
+  if (!data) {
+    // fallback a órbita circular 1 AU si falta
+    return {
+      semi_major_axis: 1,
+      eccentricity: 0,
+      inclination: 0,
+      ascending_node_longitude: 0,
+      perihelion_argument: 0,
+      mean_anomaly: 0,
+      epoch_osculation: 2451545.0,
+      orbital_period: 365
+    };
   }
 
-  initThreeJS();
+  const semi_major_axis = Number(data.semi_major_axis ?? data.semiMajorAxis ?? data.semiMajorAxis ?? 1);
+  const eccentricity = Number(data.eccentricity ?? data.e ?? 0);
+  const inclination = Number(data.inclination ?? data.inclinationDeg ?? data.i ?? 0);
+  const ascending_node_longitude = Number(data.ascending_node_longitude ?? data.ascendingNodeLongitude ?? 0);
+  const perihelion_argument = Number(data.perihelion_argument ?? data.perihelionArgument ?? 0);
+  const mean_anomaly = Number(data.mean_anomaly ?? data.meanAnomaly ?? 0);
+  const epoch_osculation = Number(data.epoch_osculation ?? data.epochOsculation ?? data.epoch ?? 2451545.0);
+  const orbital_period = Number(data.orbital_period ?? data.orbitalPeriod ?? data.period ?? 365);
+
+  return {
+    semi_major_axis,
+    eccentricity,
+    inclination,
+    ascending_node_longitude,
+    perihelion_argument,
+    mean_anomaly,
+    epoch_osculation,
+    orbital_period
+  };
+}
+
+// --- onMount: cargar asteroides (ids por query param o archivo local) ---
+onMount(async () => {
+  try {
+    const url = new URL(window.location.href);
+    const idsParam = url.searchParams.get("ids");
+
+    let asteroidsData: any[] = [];
+
+    if (idsParam) {
+      const ids = idsParam.split(",").map(s => s.trim()).filter(Boolean);
+      const fetched = await Promise.all(ids.map(id =>
+        fetch(`/api?id=${id}`).then(r => {
+          if (!r.ok) throw new Error(`fetch failed for id ${id}`);
+          return r.json();
+        })
+      ));
+      asteroidsData = fetched;
+    } else {
+      // intenta cargar archivo local si no hay ids
+      try {
+        const res = await fetch("/data/asteroids.json");
+        if (res.ok) asteroidsData = await res.json();
+      } catch (e) {
+        // no hay archivo local - podemos continuar sin asteroides
+        console.warn("No local asteroids file:", e);
+        asteroidsData = [];
+      }
+    }
+
+    // normalizar y parsear fechas
+    asteroidDetails = asteroidsData.map(a => {
+      const orbitalRaw = a.orbitalData ?? a.orbital_data ?? a.orbital ?? {};
+      const closeApproachRaw = a.closeApproachData ?? a.close_approach_data ?? a.closeApproaches ?? [];
+
+      return {
+        ...a,
+        orbitalData: mapToOrbitalDataAPI(orbitalRaw),
+        closeApproachData: closeApproachRaw.map((cad: any) => ({
+          ...cad,
+          closeApproachDate: cad.closeApproachDate ? new Date(cad.closeApproachDate) : (cad.close_approach_date ? new Date(cad.close_approach_date) : new Date(BASE_DATE))
+        }))
+      } as AsteroidDetails;
+    });
+
+    initThreeJS();
+  } catch (err) {
+    console.error("Error inicializando asteroides:", err);
+  }
 });
 
-// --- Three.js ---
+// --- Inicializar ThreeJS y escena ---
 function initThreeJS() {
+  if (!container) {
+    console.error("container DOM no ligado");
+    return;
+  }
+
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000); // fondo negro
+  scene.background = new THREE.Color(0x000000);
 
   const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.001, 5000);
   camera.position.set(3 * AU_IN_UNITS, 3 * AU_IN_UNITS, 3 * AU_IN_UNITS);
@@ -132,76 +168,121 @@ function initThreeJS() {
 
   // --- Sol ---
   const sunGroup = createSun();
-  scene.add(sunGroup);
+  // Si createSun ya añade luz, esto no hará daño; si no, añadimos luz de respaldo:
   const sunLight = new THREE.PointLight(0xffffff, 2);
   sunLight.position.set(0, 0, 0);
   sunGroup.add(sunLight);
-
   const sunLabel = new CSS2DObject(document.createElement("div"));
   sunLabel.element.className = "label";
   sunLabel.element.textContent = "Sun";
   sunGroup.add(sunLabel);
+  scene.add(sunGroup);
 
-  // --- Tierra ---
+  // --- Tierra (creada con tus orbital elements internos) ---
   const earth = createEarth({ scene });
-  scene.add(earth);
   const earthLabel = new CSS2DObject(document.createElement("div"));
   earthLabel.element.className = "label";
   earthLabel.element.textContent = "Earth";
   earth.add(earthLabel);
+  scene.add(earth);
 
-  // --- Asteroides ---
-  asteroidDetails.forEach((asteroidDetail, i) => {
-    const orbitalAPI = mapToOrbitalDataAPI(orbitalDataList[i]);
+  // --- Crear asteroides (cada uno con su orbitalData) ---
+  asteroidGroups = [];
+
+  asteroidDetails.forEach(detail => {
+    // aseguramos orbitalData normalizado
+    const orbitalAPI = mapToOrbitalDataAPI((detail as any).orbitalData ?? detail.orbitalData);
+
+    // crear el grupo visual (createAsteroid dibuja la órbita fija)
+    const group = createAsteroid({
+      scene,
+      orbitalData: orbitalAPI,
+      detail,
+      estimatedDiameterKm: detail.metadata?.estimatedDiameter
+    }) as AsteroidGroup;
+
+    // obtener elementos orbitales (AU, grados, periodo)
     const elements = mapOrbitalDataToElements(orbitalAPI);
 
-    const diameterKm = (asteroidDetail.metadata.estimatedDiameter.min + asteroidDetail.metadata.estimatedDiameter.max) / 2;
-    const position = getOrbitPosition(elements, 0);
+    // epoch en ms a partir de JD (epoch_osculation se espera en JD en tus datos)
+    const epochMs = julianToMs(orbitalAPI.epoch_osculation);
 
-    const asteroidMesh = createAsteroidMesh(position, diameterKm);
-    scene.add(asteroidMesh);
+    // guardamos orbitalElements en formato que usa getOrbitPosition
+    group.orbitalElements = {
+      a: elements.a,       // AU (mapOrbitalDataToElements retorna el valor directo)
+      e: elements.e,
+      i: elements.i,       // grados (mapOrbitalDataToElements used deg)
+      omega: elements.omega,
+      w: elements.w,
+      M0: elements.M0,
+      epoch: elements.epoch,
+      period: elements.period
+    };
+    group.epochMs = epochMs;
 
-    const closeApproaches = asteroidDetail.closeApproachData.map(cad => {
-      const epochDate = new Date(orbitalAPI.epoch_osculation);
-      const cadDate = new Date(cad.closeApproachDate);
-      const daysFromEpoch = (cadDate.getTime() - epochDate.getTime()) / (1000*60*60*24);
-      return { daysFromEpoch, label: cadDate.toUTCString() };
+    // añadir un label 2D (nombre) directamente al grupo
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "label";
+    nameDiv.textContent = detail.name ?? detail.designation ?? "Unnamed";
+    const nameLabel = new CSS2DObject(nameDiv);
+    nameLabel.position.set(0, 0, 0);
+    group.add(nameLabel);
+
+    scene.add(group);
+
+    // close approach markers (rojos) si los hay
+    const markers: THREE.Mesh[] = [];
+    (detail.closeApproachData ?? []).forEach(cad => {
+      const daysFromEpoch = (new Date(cad.closeApproachDate).getTime() - epochMs) / MS_PER_DAY;
+      const pos = getOrbitPosition(group.orbitalElements, daysFromEpoch);
+
+      const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08),
+        new THREE.MeshBasicMaterial({ color: 0xff4444 })
+      );
+      marker.position.copy(pos);
+      scene.add(marker);
+
+      // etiqueta con la fecha de aproximación en UTC (si quieres la pones)
+      const l = document.createElement("div");
+      l.className = "label";
+      l.textContent = new Date(cad.closeApproachDate).toUTCString();
+      (marker as any).add(new CSS2DObject(l));
+
+      markers.push(marker);
     });
 
-    const markers = createCloseApproachMarkers(elements, closeApproaches);
-    markers.forEach(m => {
-      const label = new CSS2DObject(document.createElement("div"));
-      label.element.className = "label";
-      label.element.textContent = m.label ?? '';
-      label.position.copy(m.position);
-      asteroidMesh.add(label);
-    });
+    asteroidGroups.push({ group, markers });
   });
 
+  // helpers visuales
   scene.add(new THREE.GridHelper(20 * AU_IN_UNITS, 20));
   scene.add(new THREE.AxesHelper(5 * AU_IN_UNITS));
 
+  // --- Animación principal ---
   function animate() {
     requestAnimationFrame(animate);
     const now = performance.now();
     const deltaSec = (now - lastFrameTime) / 1000;
     lastFrameTime = now;
 
-    if (!isPaused && simulationMinDate && simulationMaxDate) {
-      const deltaDays = (speed / (24 * 60)) * deltaSec;
-      daysElapsed += deltaDays;
-
-      let newSimulatedDate = new Date(simulationMinDate.getTime() + daysElapsed * 24 * 60 * 60 * 1000);
-      if (newSimulatedDate > simulationMaxDate) {
-        newSimulatedDate = new Date(simulationMaxDate);
-        daysElapsed = (simulationMaxDate.getTime() - simulationMinDate.getTime()) / (24*60*60*1000);
-      }
-      simulatedDate = newSimulatedDate;
+    if (!isPaused) {
+      // speed = minutos simulados por segundo real -> convertimos a minutos por frame y movemos la fecha simulada
+      const deltaMinutes = speed * deltaSec;
+      simulatedDate = new Date(simulatedDate.getTime() + deltaMinutes * 60 * 1000);
     }
 
-    (sunGroup as any).update?.(camera);
-    (earth as any).update?.(camera, daysElapsed);
-    updateEarth(earth, daysElapsed);
+    // actualizamos asteroides: calculamos daysSinceEpoch para cada uno usando simulatedDate
+    asteroidGroups.forEach(item => {
+      const epochMs = item.group.epochMs ?? BASE_DATE.getTime();
+      const daysSinceEpoch = (simulatedDate.getTime() - epochMs) / MS_PER_DAY;
+      const pos = getOrbitPosition(item.group.orbitalElements, daysSinceEpoch);
+      item.group.position.set(pos.x, pos.y, pos.z);
+    });
+
+    // Hacemos que la Tierra esté en su posición para la fecha simulada
+    const daysSinceBase = (simulatedDate.getTime() - BASE_DATE.getTime()) / MS_PER_DAY;
+    updateEarth(earth, daysSinceBase);
 
     controls.target.copy(earth.position);
     controls.update();
@@ -212,42 +293,45 @@ function initThreeJS() {
 
   animate();
 
+  // resize
   window.addEventListener("resize", () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.aspect = container!.clientWidth / container!.clientHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    labelRenderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setSize(container!.clientWidth, container!.clientHeight);
+    labelRenderer.setSize(container!.clientWidth, container!.clientHeight);
   });
 }
 </script>
 
-
 <style>
 :global(.label) {
   color: white;
-  font-size: 14px;
+  font-size: 12px;
   font-family: sans-serif;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.6);
   padding: 2px 6px;
   border-radius: 4px;
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
+  white-space: nowrap;
 }
 </style>
 
 <div bind:this={container} class="w-full h-screen relative"></div>
 
-<div class="absolute top-4 left-4 flex flex-col gap-2 text-white z-50">
+<!-- Control panel -->
+<div class="absolute top-4 left-4 flex flex-col gap-3 text-white z-50 bg-gray-900 bg-opacity-70 p-3 rounded-lg shadow-lg">
   <button on:click={togglePause} class="bg-gray-800 px-3 py-1 rounded hover:bg-gray-700 transition">
     {isPaused ? "Play" : "Pause"}
   </button>
 
-  <span>{simulatedDate.toUTCString()}</span>
+  <div class="text-sm">
+    🕐 <strong>Simulated date (UTC):</strong> {simulatedDate.toISOString().replace("T", " ").slice(0, 19)} UTC
+  </div>
 
-  <div class="bg-gray-800 p-2 rounded flex flex-col gap-1">
-    <div class="flex justify-between items-center">
-      <span>Simulation Speed</span>
-      <span>{speed.toFixed(2)} min/s</span>
+  <div class="flex flex-col gap-2">
+    <div class="flex justify-between text-sm">
+      <span>Speed</span>
+      <span>{speed.toFixed(0)} min/s</span>
     </div>
     <input
       type="range"
@@ -255,8 +339,8 @@ function initThreeJS() {
       max="100"
       value="50"
       on:input={(e) => setSpeedFromSlider((e.target as HTMLInputElement).valueAsNumber)}
-      class="w-32"
+      class="w-40"
     />
-    <div class="text-xs text-gray-300">min/s = minutos por segundo real</div>
+    <div class="text-xs text-gray-300">min/s = minutos simulados por segundo real (min {minSpeed} — max {maxSpeed})</div>
   </div>
 </div>
