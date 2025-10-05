@@ -26,32 +26,6 @@ export interface AsteroidPosition {
   label?: string;
 }
 
-// --- API de la NASA ---
-export interface OrbitalDataAPI {
-  semi_major_axis: number;
-  eccentricity: number;
-  inclination: number;
-  ascending_node_longitude: number;
-  perihelion_argument: number;
-  mean_anomaly: number;
-  epoch_osculation: number;
-  orbital_period: number;
-}
-
-// --- Mapear API a OrbitalElements ---
-export function mapOrbitalDataToElements(data: OrbitalDataAPI): OrbitalElements {
-  return {
-    a: data.semi_major_axis,
-    e: data.eccentricity,
-    i: data.inclination,
-    omega: data.ascending_node_longitude,
-    w: data.perihelion_argument,
-    M0: data.mean_anomaly,
-    epoch: data.epoch_osculation,
-    period: data.orbital_period,
-  };
-}
-
 // --- Posición en órbita ---
 export function getOrbitPosition(elements: OrbitalElements, daysElapsed: number): THREE.Vector3 {
   const AU_SCALED = toScaledValue(KM_PER_AU);

@@ -3,14 +3,14 @@ import { onMount } from "svelte";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-
+import { formatWithOptions } from "date-fns/fp";
 import { createEarth, updateEarth } from "$lib/Earth";
 import { createSun } from "$lib/Sun";
 import { createAsteroid } from "$lib/Asteroid";
-import { getOrbitPosition, mapOrbitalDataToElements } from "$lib/AsteroidOrbital";
-
+import { getOrbitPosition } from "$lib/AsteroidOrbital";
 import type { AsteroidDetails } from "$lib/interfaces/asteroid.interfaces";
-import type { OrbitalDataAPI, OrbitalElements } from "$lib/AsteroidOrbital";
+import type { OrbitalElements } from "$lib/AsteroidOrbital";
+    import { Search } from "@lucide/svelte";
 
 // --- Tipado del grupo de asteroide (extendemos Group para guardar elements/epoch) ---
 interface AsteroidGroup extends THREE.Group {
@@ -32,7 +32,7 @@ const minSpeed = 30;
 const maxSpeed = 180;
 
 // --- Datos y estructuras ---
-let asteroidDetails: AsteroidDetails[] = [];
+let asteroidsData: AsteroidDetails[] = [];
 let asteroidGroups: { group: AsteroidGroup; markers: THREE.Mesh[] }[] = [];
 
 const AU_IN_UNITS = 50; // solo para helpers visuales
@@ -50,92 +50,31 @@ function julianToMs(jd: number) {
   return (jd - 2440587.5) * MS_PER_DAY;
 }
 
-// --- Normalizador robusto de orbitalData (acepta snake_case y camelCase) ---
-function mapToOrbitalDataAPI(data: any): OrbitalDataAPI {
-  if (!data) {
-    // fallback a órbita circular 1 AU si falta
-    return {
-      semi_major_axis: 1,
-      eccentricity: 0,
-      inclination: 0,
-      ascending_node_longitude: 0,
-      perihelion_argument: 0,
-      mean_anomaly: 0,
-      epoch_osculation: 2451545.0,
-      orbital_period: 365
-    };
-  }
-
-  const semi_major_axis = Number(data.semi_major_axis ?? data.semiMajorAxis ?? data.semiMajorAxis ?? 1);
-  const eccentricity = Number(data.eccentricity ?? data.e ?? 0);
-  const inclination = Number(data.inclination ?? data.inclinationDeg ?? data.i ?? 0);
-  const ascending_node_longitude = Number(data.ascending_node_longitude ?? data.ascendingNodeLongitude ?? 0);
-  const perihelion_argument = Number(data.perihelion_argument ?? data.perihelionArgument ?? 0);
-  const mean_anomaly = Number(data.mean_anomaly ?? data.meanAnomaly ?? 0);
-  const epoch_osculation = Number(data.epoch_osculation ?? data.epochOsculation ?? data.epoch ?? 2451545.0);
-  const orbital_period = Number(data.orbital_period ?? data.orbitalPeriod ?? data.period ?? 365);
-
-  return {
-    semi_major_axis,
-    eccentricity,
-    inclination,
-    ascending_node_longitude,
-    perihelion_argument,
-    mean_anomaly,
-    epoch_osculation,
-    orbital_period
-  };
-}
-
 // --- onMount: cargar asteroides (ids por query param o archivo local) ---
 onMount(async () => {
   try {
     const url = new URL(window.location.href);
-    const idsParam = url.searchParams.get("ids");
+    const idsParam = url.searchParams.getAll("id");
 
-    let asteroidsData: any[] = [];
-
-    if (idsParam) {
-      const ids = idsParam.split(",").map(s => s.trim()).filter(Boolean);
-      const fetched = await Promise.all(ids.map(id =>
-        fetch(`/api?id=${id}`).then(r => {
+    if (idsParam.length > 0) {
+      const ids = idsParam.map(s => s.trim()).filter(Boolean);
+      const fetched: AsteroidDetails[] = await Promise.all(ids.map(id =>
+        fetch(`https://nasa-meteor-challenge.koyeb.app/asteroids/${id}`).then(r => {
           if (!r.ok) throw new Error(`fetch failed for id ${id}`);
           return r.json();
         })
       ));
+
       asteroidsData = fetched;
-    } else {
-      // intenta cargar archivo local si no hay ids
-      try {
-        const res = await fetch("/data/asteroids.json");
-        if (res.ok) asteroidsData = await res.json();
-      } catch (e) {
-        // no hay archivo local - podemos continuar sin asteroides
-        console.warn("No local asteroids file:", e);
-        asteroidsData = [];
-      }
+
     }
-
-    // normalizar y parsear fechas
-    asteroidDetails = asteroidsData.map(a => {
-      const orbitalRaw = a.orbitalData ?? a.orbital_data ?? a.orbital ?? {};
-      const closeApproachRaw = a.closeApproachData ?? a.close_approach_data ?? a.closeApproaches ?? [];
-
-      return {
-        ...a,
-        orbitalData: mapToOrbitalDataAPI(orbitalRaw),
-        closeApproachData: closeApproachRaw.map((cad: any) => ({
-          ...cad,
-          closeApproachDate: cad.closeApproachDate ? new Date(cad.closeApproachDate) : (cad.close_approach_date ? new Date(cad.close_approach_date) : new Date(BASE_DATE))
-        }))
-      } as AsteroidDetails;
-    });
-
     initThreeJS();
   } catch (err) {
     console.error("Error inicializando asteroides:", err);
   }
 });
+
+console.log(asteroidsData);
 
 // --- Inicializar ThreeJS y escena ---
 function initThreeJS() {
@@ -189,9 +128,11 @@ function initThreeJS() {
   // --- Crear asteroides (cada uno con su orbitalData) ---
   asteroidGroups = [];
 
-  asteroidDetails.forEach(detail => {
+  asteroidsData.forEach(detail => {
     // aseguramos orbitalData normalizado
-    const orbitalAPI = mapToOrbitalDataAPI((detail as any).orbitalData ?? detail.orbitalData);
+    const orbitalAPI = (detail as any).orbitalData ?? detail.orbitalData;
+    console.log("Detail: "+detail)
+    console.log("Mira: "+orbitalAPI)
 
     // crear el grupo visual (createAsteroid dibuja la órbita fija)
     const group = createAsteroid({
@@ -202,7 +143,7 @@ function initThreeJS() {
     }) as AsteroidGroup;
 
     // obtener elementos orbitales (AU, grados, periodo)
-    const elements = mapOrbitalDataToElements(orbitalAPI);
+    const elements = orbitalAPI;
 
     // epoch en ms a partir de JD (epoch_osculation se espera en JD en tus datos)
     const epochMs = julianToMs(orbitalAPI.epoch_osculation);

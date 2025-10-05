@@ -56,8 +56,8 @@ export interface MetadataMissDistance {
 export interface OrbitalData {
   readonly orbitId: string;
   readonly orbitDeterminationDate: Date;
-  readonly first_observation_date: Date;
-  readonly last_observation_date: Date;
+  readonly firstObservationDate: Date;
+  readonly lastObservationDate: Date;
   readonly dataArcInDays: number;
   readonly observationsUsed: number;
   readonly orbitUncertainty: string;

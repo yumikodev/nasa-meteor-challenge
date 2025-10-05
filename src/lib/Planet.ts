@@ -34,7 +34,7 @@ export function createPlanet({
   group.add(planetMesh);
 
   // --- Punto de referencia ---
-  const pointGeometry = new THREE.BufferGeometry();
+  const pointGeometry = new THREE.SphereGeometry(16, 16, 16);
   pointGeometry.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0], 3));
   const pointMaterial = new THREE.PointsMaterial({ color, size: 10, sizeAttenuation: true });
   const planetPoint = new THREE.Points(pointGeometry, pointMaterial);

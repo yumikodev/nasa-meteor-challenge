@@ -3,17 +3,15 @@ import * as THREE from "three";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { 
   getOrbitPosition, 
-  createOrbitLine, 
-  mapOrbitalDataToElements,
-  createAsteroidMesh,
-  toScaledValue
+  createOrbitLine,
+  createAsteroidMesh
 } from "./AsteroidOrbital";
-import type { OrbitalElements, OrbitalDataAPI } from "./AsteroidOrbital";
-import type { AsteroidDetails, EstimatedDiameter } from "./interfaces/asteroid.interfaces";
+import type { OrbitalElements } from "./AsteroidOrbital";
+import type { AsteroidDetails, EstimatedDiameter, OrbitalData } from "./interfaces/asteroid.interfaces";
 
 interface AsteroidOptions {
   scene?: THREE.Scene;
-  orbitalData: OrbitalDataAPI;      
+  orbitalData: OrbitalData;      
   detail: AsteroidDetails;
   estimatedDiameterKm: EstimatedDiameter;
 }
@@ -25,8 +23,17 @@ export function createAsteroid(options: AsteroidOptions): THREE.Group {
   if (!orbitalData) throw new Error("Debe proveerse orbitalData con los datos del asteroide");
   if (!detail?.name) throw new Error("Debe proveerse el nombre real del asteroide en metadata.name");
 
-  // --- Mapear a OrbitalElements ---
-  const orbitalElements: OrbitalElements = mapOrbitalDataToElements(orbitalData);
+  // Nose
+  const orbitalElements: OrbitalElements = {
+    a: orbitalData.semiMajorAxis,                     // AU
+    e: orbitalData.eccentricity,                      // adimensional
+    i: orbitalData.inclination,                       // grados
+    omega: orbitalData.ascendingNodeLongitude,        // grados
+    w: orbitalData.perihelionArgument,               // grados
+    M0: orbitalData.meanAnomaly,                      // grados
+    epoch: orbitalData.epochOsculation,               // JD
+    period: orbitalData.orbitalPeriod                 // días
+  };
 
   // Grupo principal del asteroide
   const asteroidGroup = new THREE.Group();
