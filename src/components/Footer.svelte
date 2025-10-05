@@ -1,10 +1,10 @@
 <script lang="ts">
-  import logo from "../assets/logo.webp";
+  import logo from "$lib/assets/logo.webp";
 </script>
 
 <footer class="border-t border-white/10 bg-gray-900/50 backdrop-blur-sm">
   <div class="max-w-7xl mx-auto px-4 md:px-6 py-12">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
       <div>
         <div class="flex items-center gap-2 mb-4">
           <img src={logo} alt="SPACE GEN Z" class="w-8 h-8 object-contain" />
@@ -61,22 +61,25 @@
         </ul>
       </div>
 
-      <!-- <div>
-        <h4 class="mb-4 text-white">Conectar</h4>
+      <div>
+        <h4 class="mb-4 text-white">OpenSource</h4>
         <ul class="space-y-2 text-sm text-gray-200">
           <li>
-            <a href="#" class="hover:text-cyan-400 transition-colors">Twitter</a
+            <a
+              href="https://github.com/yumikodev/nasa-meteor-challenge"
+              target="_blank"
+              class="hover:text-cyan-400 transition-colors">Frontend</a
             >
           </li>
           <li>
-            <a href="#" class="hover:text-cyan-400 transition-colors">GitHub</a>
-          </li>
-          <li>
-            <a href="#" class="hover:text-cyan-400 transition-colors">Boletín</a
+            <a
+              href="https://github.com/yumikodev/nasa-meteor-challenge-api"
+              target="_blank"
+              class="hover:text-cyan-400 transition-colors">Backend</a
             >
           </li>
         </ul>
-      </div> -->
+      </div>
     </div>
 
     <div

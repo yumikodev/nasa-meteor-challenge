@@ -1,6 +1,6 @@
 <script>
   import { onDestroy } from "svelte";
-  import logo from "../assets/logo.webp";
+  import logo from "$lib/assets/logo.webp";
 
   let time = new Date();
   const interval = setInterval(() => {
