@@ -6,6 +6,7 @@
 </script>
 
 <svelte:head>
+	<title>Space Gen Z</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
