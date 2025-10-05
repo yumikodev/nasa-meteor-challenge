@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Asteroids } from "$lib/interfaces/asteroid.interfaces";
   import AnimatedSpaceBg from "../components/AnimatedSpaceBg.svelte";
+  import AsteroidList from "../components/AsteroidList.svelte";
   import Navbar from "../components/Navbar.svelte";
   import { onMount } from "svelte";
 
@@ -114,46 +115,5 @@
     </div>
   </section>
 
-  <section
-    id="asteroids"
-    class="max-w-7xl mx-auto px-4 md:px-6 py-14 relative z-20"
-  >
-    <h3 class="text-center text-3xl font-semibold">Lista de asteroides</h3>
-
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-      {#if data}
-        {#each data.asteroids as asteroid}
-          <div
-            class="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl border border-white/10 p-4 md:p-6 rounded-xl"
-          >
-            <div class="text-lg font-semibold mb-2">{asteroid.name}</div>
-            <div class="text-sm text-gray-300 mb-1">
-              Diámetro: {asteroid.metadata.estimatedDiameter.min.toFixed(2)}m -{" "}
-              {asteroid.metadata.estimatedDiameter.max.toFixed(2)}m
-            </div>
-            <div class="text-sm text-gray-300 mb-1">
-              Fecha de acercamiento:{" "}
-              {new Date(
-                asteroid.closeApproachData[0].closeApproachDate
-              ).toLocaleDateString("es-ES")}
-            </div>
-            <div class="text-sm text-gray-300 mb-1">
-              Distancia mínima:{" "}
-              {(asteroid.metadata.missDistance?.km ?? 0).toFixed(2)}{" "}
-              km
-            </div>
-            <div
-              class="text-sm font-semibold"
-              class:text-red-400={asteroid.metadata.isPotentiallyHazardous}
-              class:text-green-400={!asteroid.metadata.isPotentiallyHazardous}
-            >
-              {asteroid.metadata.isPotentiallyHazardous
-                ? "Peligroso"
-                : "No peligroso"}
-            </div>
-          </div>
-        {/each}
-      {/if}
-    </div>
-  </section>
+  <AsteroidList />
 </div>
