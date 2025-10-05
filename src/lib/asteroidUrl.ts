@@ -5,7 +5,10 @@ import type { Asteroid } from "$lib/interfaces/asteroid.interfaces";
  * @param asteroids Array de asteroides seleccionados
  * @returns URL string lista para usar en redirección
  */
-export function getSimulationUrl(asteroids: Asteroid[]): string {
-  const ids = asteroids.map(a => a.id);
-  return `/cartesian/?ids=${ids.join(",")}`; // Cambio aquí
+export function getSimulationUrl(asteroidIds: string[]): string {
+  const query = new URLSearchParams();
+  for (const id of asteroidIds) {
+    query.append("id", id);
+  }
+  return `/cartesian?${query.toString()}`;
 }

@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { getSimulationUrl } from "$lib/asteroidUrl";
-  import type { Asteroid, Asteroids } from "$lib/interfaces/asteroid.interfaces";
+  import type {
+    Asteroid,
+    Asteroids,
+  } from "$lib/interfaces/asteroid.interfaces";
 
   let data: Asteroids | null = null;
   let loading = true;
@@ -23,7 +26,7 @@
 
       // Seleccionamos los primeros 2 asteroides como ejemplo
       selectedAsteroids = data.asteroids.slice(0, 2) as Asteroid[];
-      simulationUrl = getSimulationUrl(selectedAsteroids);
+      simulationUrl = getSimulationUrl(selectedAsteroids.map((a) => a.id));
     } catch (e) {
       error = "No se pudieron cargar los datos";
     } finally {

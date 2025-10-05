@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Asteroids } from "$lib/interfaces/asteroid.interfaces";
+  import { getSimulationUrl } from "$lib/asteroidUrl";
   import {
     ChevronLeftIcon,
     ChevronRightIcon,
@@ -9,6 +10,7 @@
     RulerDimensionLineIcon,
   } from "@lucide/svelte";
   import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
 
   let data: Asteroids | null = null;
   let loading = true;
@@ -81,6 +83,13 @@
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  function goToCartesian() {
+    const asteroidIds = Array.from(selectedAsteroidsMap.keys());
+    if (asteroidIds.length === 0) return;
+    const simulationUrl = getSimulationUrl(asteroidIds);
+    goto(simulationUrl);
+  }
 </script>
 
 <section
@@ -120,6 +129,7 @@
       <p class="text-lg font-semibold">Seleccionados: {selectedCount}</p>
       <button
         class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        on:click={goToCartesian}
         disabled={selectedCount === 0}
       >
         Iniciar simulación
