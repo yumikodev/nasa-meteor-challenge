@@ -52,6 +52,18 @@ const config: Config = {
       routes: ["/"],
       loader: async () => (await import("../locales/en/footer.json")).default,
     },
+    {
+      locale: "es",
+      key: "about",
+      routes: ["/"],
+      loader: async () => (await import("../locales/es/about.json")).default,
+    },
+    {
+      locale: "en",
+      key: "about",
+      routes: ["/"],
+      loader: async () => (await import("../locales/en/about.json")).default,
+    },
   ],
 };
 

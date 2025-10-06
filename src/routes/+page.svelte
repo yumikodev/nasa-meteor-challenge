@@ -7,6 +7,7 @@
   import { onMount } from "svelte";
   import Footer from "../components/Footer.svelte";
   import { t } from "$lib/translations";
+  import About from "../components/About.svelte";
 
   let data: Asteroids | null = null;
   let loading = true;
@@ -162,6 +163,8 @@
   </section>
 
   <AsteroidList />
+
+  <About />
 
   <Footer />
 </div>
