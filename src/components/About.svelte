@@ -2,6 +2,7 @@
   // Puedes cambiar la ruta de la imagen por la que desees
   import teamPhoto from "$lib/assets/teamPhoto.jpeg";
   import { t } from "$lib/translations";
+  import { ExternalLinkIcon } from "@lucide/svelte";
 </script>
 
 <section id="about" class="max-w-7xl mx-auto px-4 md:px-6 py-14 relative z-20">
@@ -24,9 +25,18 @@
       </div>
     </div>
     <div class="w-full lg:w-[45%] flex flex-col justify-center">
-      <p class="text-lg text-gray-200 text-center lg:text-left">
+      <p class="text-lg text-gray-200 mb-6 text-center lg:text-left">
         {$t("about.description")}
       </p>
+
+      <a
+        class="btn-primary flex gap-2 w-fit"
+        href="https://www.canva.com/design/DAG03BZ3r5E/BM5o-CoplhTL1gi7CHCHdA/view"
+        target="_blank"
+      >
+        <ExternalLinkIcon />
+        {$t("about.ppt_link")}
+      </a>
     </div>
   </div>
 </section>
