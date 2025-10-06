@@ -23,5 +23,6 @@
     "next": "Página siguiente",
     "page": "Página",
     "of": "de"
-  }
+  },
+  "description": "Se mostrarán los asteroides más cercanos a la Tierra dentro de un rango de tiempo limitado, utilizando la fecha actual como referencia."
 }

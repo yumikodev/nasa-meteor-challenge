@@ -23,5 +23,6 @@
     "next": "Next page",
     "page": "Page",
     "of": "of"
-  }
+  },
+  "description": "The closest asteroids to Earth will be displayed within a limited time range, using the current date as a reference."
 }

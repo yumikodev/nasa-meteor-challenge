@@ -97,7 +97,13 @@
   id="asteroids"
   class="max-w-7xl mx-auto px-4 md:px-6 py-14 relative z-20"
 >
-  <h3 class="text-center text-4xl font-bold mb-8">{$t("asteroidList.title")}</h3>
+  <h3 class="text-center text-4xl font-bold mb-2">
+    {$t("asteroidList.title")}
+  </h3>
+
+  <p class="text-center mb-8 max-w-2xl mx-auto text-gray-300">
+    {$t("asteroidList.description")}
+  </p>
 
   <div
     class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4"
@@ -174,24 +180,27 @@
         />
         <label
           for={asteroid.id}
-          class="card"
+          class="card cursor-pointer"
           class:card-focus={selectedAsteroidsMap.has(asteroid.id)}
         >
           <div class="text-lg font-semibold mb-2">{asteroid.name}</div>
           <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
-            <RulerIcon class="size-4" /> {$t("asteroidList.diameter")}: {(
+            <RulerIcon class="size-4" />
+            {$t("asteroidList.diameter")}: {(
               asteroid.metadata.estimatedDiameter.min * 1000
             ).toFixed(2)}m -{" "}
             {(asteroid.metadata.estimatedDiameter.max * 1000).toFixed(2)}m
           </div>
           <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
-            <CalendarIcon class="size-4" /> {$t("asteroidList.approachDate")}:{" "}
+            <CalendarIcon class="size-4" />
+            {$t("asteroidList.approachDate")}:{" "}
             {new Date(
               asteroid.closeApproachData[0].closeApproachDate
-            ).toLocaleDateString($locale === 'en' ? "en-US" : "es-ES")}
+            ).toLocaleDateString($locale === "en" ? "en-US" : "es-ES")}
           </div>
           <div class="flex items-start gap-2 text-sm text-gray-300 mb-1">
-            <RulerDimensionLineIcon class="size-4" /> {$t("asteroidList.minDistance")}:{" "}
+            <RulerDimensionLineIcon class="size-4" />
+            {$t("asteroidList.minDistance")}:{" "}
             {(asteroid.metadata.missDistance?.km ?? 0).toFixed(2)}{" "}
             km
           </div>
@@ -233,7 +242,10 @@
         <ChevronLeftIcon size={20} />
       </button>
       <span class="mx-2 text-lg font-semibold">
-        {$t("asteroidList.pagination.page")} {currentPage} {$t("asteroidList.pagination.of")} {totalPages}
+        {$t("asteroidList.pagination.page")}
+        {currentPage}
+        {$t("asteroidList.pagination.of")}
+        {totalPages}
       </span>
       <button
         class="p-2 rounded hover:bg-gray-700 disabled:opacity-50"

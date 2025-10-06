@@ -47,9 +47,6 @@
       <a href="#asteroids" class="hover:text-cyan-400 transition-colors"
         >{$t("navbar.links.asteroids")}</a
       >
-      <a href="#challenge" class="hover:text-cyan-400 transition-colors"
-        >{$t("navbar.links.challenge")}</a
-      >
       <a href="#about" class="hover:text-cyan-400 transition-colors"
         >{$t("navbar.links.about")}</a
       >
@@ -58,22 +55,22 @@
       <div class="flex gap-1 mb-1 justify-end">
         <button
           class="px-2 py-1 rounded text-xs font-semibold transition-colors"
-          class:bg-cyan-400={$locale === 'es'}
-          class:text-white={$locale !== 'es'}
-          class:text-gray-900={$locale === 'es'}
-          class:bg-gray-700={$locale !== 'es'}
-          on:click={() => changeLang('es')}
+          class:bg-cyan-400={$locale === "es"}
+          class:text-white={$locale !== "es"}
+          class:text-gray-900={$locale === "es"}
+          class:bg-gray-700={$locale !== "es"}
+          on:click={() => changeLang("es")}
           aria-label="Español"
         >
           ES
         </button>
         <button
           class="px-2 py-1 rounded text-xs font-semibold transition-colors"
-          class:bg-cyan-400={$locale === 'en'}
-          class:text-white={$locale !== 'en'}
-          class:text-gray-900={$locale === 'en'}
-          class:bg-gray-700={$locale !== 'en'}
-          on:click={() => changeLang('en')}
+          class:bg-cyan-400={$locale === "en"}
+          class:text-white={$locale !== "en"}
+          class:text-gray-900={$locale === "en"}
+          class:bg-gray-700={$locale !== "en"}
+          on:click={() => changeLang("en")}
           aria-label="English"
         >
           EN
