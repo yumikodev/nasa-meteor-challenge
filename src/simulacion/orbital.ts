@@ -153,22 +153,3 @@ export function getMoonPosition(JD: number): THREE.Vector3 {
     scaledDistance * Math.sin(angle)
   );
 }
-
-// --- Asteroides ---
-export function getAsteroidPosition(asteroid: Asteroid, daysElapsed?: number): THREE.Vector3 {
-  if (asteroid.orbitalElements && daysElapsed !== undefined) {
-    return getOrbitPosition(asteroid.orbitalElements, daysElapsed);
-  }
-
-  if (!asteroid.closeApproachData.length) return new THREE.Vector3(0, 0, 0);
-  const approach = asteroid.closeApproachData[0];
-  const missKm = approach.missDistance.kilometers;
-  const scaledMiss = toScaledValue(missKm);
-  const angle = Math.random() * 2 * Math.PI;
-
-  return new THREE.Vector3(
-    scaledMiss * Math.cos(angle),
-    (Math.random() - 0.5) * scaledMiss * 0.2,
-    scaledMiss * Math.sin(angle)
-  );
-}
