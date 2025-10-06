@@ -10,6 +10,7 @@ import { createAsteroid } from "$lib/Asteroid";
 import { getOrbitPosition } from "$lib/AsteroidOrbital";
 import type { AsteroidDetails } from "$lib/interfaces/asteroid.interfaces";
 import type { OrbitalElements } from "$lib/AsteroidOrbital";
+import { earthOrbitalElements, getJulianDateFromSimulatedTime } from "$lib/orbital";
     import { Search } from "@lucide/svelte";
 
 // --- Tipado del grupo de asteroide (extendemos Group para guardar elements/epoch) ---
@@ -77,8 +78,6 @@ onMount(async () => {
   }
 });
 
-console.log(asteroidsData);
-
 // --- Inicializar ThreeJS y escena ---
 function initThreeJS() {
   if (!container) {
@@ -115,7 +114,7 @@ function initThreeJS() {
   sunLight.position.set(0, 0, 0);
   sunGroup.add(sunLight);
   const sunLabel = new CSS2DObject(document.createElement("div"));
-  sunLabel.element.className = "label";
+  sunLabel.element.className = "label absolute bg-black/70 text-white font-bold rounded px-2 py-1 shadow-md border border-white/20 backdrop-blur-sm";
   sunLabel.element.textContent = "Sun";
   sunGroup.add(sunLabel);
   scene.add(sunGroup);
@@ -123,7 +122,7 @@ function initThreeJS() {
   // --- Tierra (creada con tus orbital elements internos) ---
   const earth = createEarth({ scene });
   const earthLabel = new CSS2DObject(document.createElement("div"));
-  earthLabel.element.className = "label";
+  earthLabel.element.className = "label absolute bg-black/70 text-white font-bold rounded px-2 py-1 shadow-md border border-white/20 backdrop-blur-sm";
   earthLabel.element.textContent = "Earth";
   earth.add(earthLabel);
   scene.add(earth);
@@ -133,69 +132,67 @@ function initThreeJS() {
 
   asteroidsData.forEach(detail => {
     // aseguramos orbitalData normalizado
-    const orbitalAPI = (detail as any).orbitalData ?? detail.orbitalData;
 
     // crear el grupo visual (createAsteroid dibuja la órbita fija)
     const group = createAsteroid({
-      scene,
-      orbitalData: orbitalAPI,
+      orbitalData: detail.orbitalData,
+      estimatedDiameterKm: detail.metadata?.estimatedDiameter,
       detail,
-      estimatedDiameterKm: detail.metadata?.estimatedDiameter
+      scene
     }) as AsteroidGroup;
 
     // obtener elementos orbitales (AU, grados, periodo)
-    const elements = orbitalAPI;
+    const elements = detail.orbitalData;
 
     // epoch en ms a partir de JD (epoch_osculation se espera en JD en tus datos)
-    const epochMs = julianToMs(orbitalAPI.epoch_osculation);
+    const epochMs = julianToMs(detail.orbitalData.epochOsculation);
 
     // guardamos orbitalElements en formato que usa getOrbitPosition
     group.orbitalElements = {
-      a: elements.a,       // AU (mapOrbitalDataToElements retorna el valor directo)
-      e: elements.e,
-      i: elements.i,       // grados (mapOrbitalDataToElements used deg)
-      omega: elements.omega,
-      w: elements.w,
-      M0: elements.M0,
-      epoch: elements.epoch,
-      period: elements.period
+      a: detail.orbitalData.semiMajorAxis,       // AU (mapOrbitalDataToElements retorna el valor directo)
+      e: detail.orbitalData.eccentricity,
+      i: detail.orbitalData.inclination,       // grados (mapOrbitalDataToElements used deg)
+      omega: detail.orbitalData.ascendingNodeLongitude,
+      w: detail.orbitalData.perihelionArgument,
+      M0: detail.orbitalData.meanAnomaly,
+      epoch: detail.orbitalData.epochOsculation,
+      period: detail.orbitalData.orbitalPeriod
     };
     group.epochMs = epochMs;
-
-    // añadir un label 2D (nombre) directamente al grupo
-    const nameDiv = document.createElement("div");
-    nameDiv.className = "label";
-    nameDiv.textContent = detail.name ?? detail.designation ?? "Unnamed";
-    const nameLabel = new CSS2DObject(nameDiv);
-    nameLabel.position.set(0, 0, 0);
-    group.add(nameLabel);
-
+    console.log("Orbital elements:", group.orbitalElements);
 
     scene.add(group);
+    console.log("Creando asteroide:", detail.name ?? detail.designation ?? "Unnamed");
+    console.log("Epoch (ms):", epochMs);
 
     // close approach markers (rojos) si los hay
     const markers: THREE.Mesh[] = [];
-    (detail.closeApproachData ?? []).forEach(cad => {
-      const daysFromEpoch = (new Date(cad.closeApproachDate).getTime() - epochMs) / MS_PER_DAY;
-      const pos = getOrbitPosition(group.orbitalElements, daysFromEpoch);
+(detail.closeApproachData ?? [])
+  .filter(cad => new Date(cad.closeApproachDate).getUTCFullYear() === 2025)
+  .forEach(cad => {
+    const daysFromEpoch = (new Date(cad.closeApproachDate).getTime() - epochMs) / MS_PER_DAY;
+    const pos = getOrbitPosition(group.orbitalElements, daysFromEpoch);
 
-      const marker = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08),
-        new THREE.MeshBasicMaterial({ color: 0xff4444 })
-      );
-      marker.position.copy(pos);
-      scene.add(marker);
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08),
+      new THREE.MeshBasicMaterial({ color: 0xff4444 })
+    );
+    marker.position.copy(pos);
+    scene.add(marker);
 
-      // etiqueta con la fecha de aproximación en UTC (si quieres la pones)
-      const l = document.createElement("div");
-      l.className = "label";
-      l.textContent = new Date(cad.closeApproachDate).toUTCString();
-      (marker as any).add(new CSS2DObject(l));
+    // etiqueta con la fecha de aproximación en UTC
+    const l = document.createElement("div");
+    l.className = "label";
+    l.textContent = new Date(cad.closeApproachDate).toUTCString();
+    (marker as any).add(new CSS2DObject(l));
 
-      markers.push(marker);
-    });
+    markers.push(marker);
+});
+
 
     asteroidGroups.push({ group, markers });
+    
+    console.log(markers);
   });
 
   // helpers visuales
@@ -205,8 +202,6 @@ function initThreeJS() {
   // --- Animación principal ---
   function animate() {
     requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
     const now = performance.now();
     const deltaSec = (now - lastFrameTime) / 1000;
     lastFrameTime = now;
@@ -238,9 +233,15 @@ function initThreeJS() {
     });
 
 
-    // Hacemos que la Tierra esté en su posición para la fecha simulada
-    const daysSinceBase = (simulatedDate.getTime() - BASE_DATE.getTime()) / MS_PER_DAY;
-    updateEarth(earth, daysSinceBase);
+    // Epoch de la Tierra en ms
+    const earthEpochMs = (earthOrbitalElements.epoch - 2440587.5) * MS_PER_DAY; // JD → ms
+
+    // Días desde el epoch de la Tierra
+    const daysSinceEarthEpoch = (simulatedDate.getTime() - earthEpochMs) / MS_PER_DAY;
+
+    // Actualizamos la posición de la Tierra
+    updateEarth(earth, daysSinceEarthEpoch);
+
 
     controls.target.copy(earth.position);
     controls.update();

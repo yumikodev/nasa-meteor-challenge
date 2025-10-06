@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { toScaledValue, getOrbitPosition, createOrbitLine } from "../simulacion/orbital";
-import type { OrbitalElements } from "../simulacion/orbital";
+import { toScaledValue, getOrbitPosition, createOrbitLine } from "./orbital";
+import type { OrbitalElements } from "./orbital";
 
 interface PlanetOptions {
   name: string;
@@ -33,13 +33,29 @@ export function createPlanet({
   planetMesh.name = `${name}Mesh`;
   group.add(planetMesh);
 
-  // --- Punto de referencia ---
-  const pointGeometry = new THREE.SphereGeometry(16, 16, 16);
-  pointGeometry.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0], 3));
-  const pointMaterial = new THREE.PointsMaterial({ color, size: 10, sizeAttenuation: true });
-  const planetPoint = new THREE.Points(pointGeometry, pointMaterial);
+  const radius = 25;
+  const geometryX = new THREE.SphereGeometry(radius, 32, 32);
+  const materialX = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.25
+  });
+  const planetPoint = new THREE.Mesh(geometryX, materialX);
   planetPoint.name = `${name}Point`;
   group.add(planetPoint);
+
+
+
+// --- En tu update/animate ---
+(group as any).update = (camera: THREE.Camera, daysElapsed?: number) => {
+  // ... resto de actualización orbital ...
+
+  // hacer que el círculo siempre mire a la cámara
+  planetPoint.lookAt(camera.position);
+};
+
+
+
 
   // --- Trayectoria dinámica (trail) ---
   let trailPositions: THREE.Vector3[] = [];
@@ -62,12 +78,11 @@ export function createPlanet({
   (group as any).update = (camera: THREE.Camera, daysElapsed?: number) => {
     const distance = camera.position.distanceTo(group.position);
 
-    // Mostrar esfera si está cerca, punto si está lejos
-    planetMesh.visible = distance < radiusScaled * 20;
-    planetPoint.visible = !planetMesh.visible;
-    if (planetPoint.visible) {
-      (pointMaterial as THREE.PointsMaterial).size = Math.min(distance * 0.05, 50);
-    }
+  // Mostrar esfera si está cerca, punto si está lejos
+  planetMesh.visible = distance < radiusScaled * 20;
+  planetPoint.visible = !planetMesh.visible;
+
+
 
     // Actualizar posición orbital
     if (orbitalElements && daysElapsed !== undefined) {

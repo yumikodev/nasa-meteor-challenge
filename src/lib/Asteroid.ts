@@ -54,14 +54,17 @@ export function createAsteroid(options: AsteroidOptions): THREE.Group {
   if (scene) {
     const labelDiv = document.createElement("div");
     labelDiv.className =
-      "label absolute bg-black/70 text-white text-xs font-semibold rounded px-1 py-0.5 shadow-md border border-white/20 backdrop-blur-sm";
+      "label absolute bg-black/70 text-white font-bold rounded px-2 py-1 shadow-md border border-white/20 backdrop-blur-sm";
     labelDiv.textContent = detail.name;
-    console.log("Nombre del asteroide:", detail.name);
+
+    labelDiv.style.fontSize = "1rem";
+    labelDiv.style.padding = "0.5rem 1rem";
 
     const labelObj = new CSS2DObject(labelDiv);
     labelObj.position.set(0, (diameterKm / 1000) + 0.05, 0);
     asteroidGroup.add(labelObj);
   }
+
 
   // --- Guardar referencias ---
   (asteroidGroup as any).orbitalData = orbitalData;

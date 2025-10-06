@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createPlanet } from "./Planet";
-import { earthOrbitalElements, getOrbitPosition } from "../simulacion/orbital";
+import { earthOrbitalElements, getOrbitPosition } from "./orbital";
 
 interface EarthOptions {
   scene?: THREE.Scene;
