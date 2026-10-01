@@ -63,7 +63,7 @@ onMount(async () => {
     if (idsParam.length > 0) {
       const ids = idsParam.map(s => s.trim()).filter(Boolean);
       const fetched: AsteroidDetails[] = await Promise.all(ids.map(id =>
-        fetch(`https://nasa-meteor-challenge.koyeb.app/asteroids/${id}`).then(r => {
+        fetch(`https://api-nasachallenge2025.edwinjibaja.dev/asteroids/${id}`).then(r => {
           if (!r.ok) throw new Error(`fetch failed for id ${id}`);
           return r.json();
         })

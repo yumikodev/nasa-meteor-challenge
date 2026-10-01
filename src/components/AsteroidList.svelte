@@ -25,7 +25,7 @@
   onMount(async () => {
     try {
       const res = await fetch(
-        "https://nasa-meteor-challenge.koyeb.app/asteroids"
+        "https://api-nasachallenge2025.edwinjibaja.dev/asteroids"
       );
       if (!res.ok) throw new Error("Error al cargar los datos");
       data = await res.json();
